@@ -1,4 +1,8 @@
-module Main exposing (Model(..), Msg(..), getRandomCatGif, init, main, renderList, subTopics, subscriptions, topicDecoder, update, view, viewGif)
+-- READ THIS
+--https://discourse.elm-lang.org/t/using-task-to-send-http-requests/2696/5
+
+
+module Main exposing (Model(..), Msg(..), getSubTopics, getTopics, init, main, renderList, subscriptions, topicDecoder, update, view, viewGif)
 
 import Browser
 import Html
@@ -6,10 +10,6 @@ import Html.Attributes
 import Html.Events
 import Http
 import Json.Decode as Decode
-
-
-
--- MAIN
 
 
 main =
@@ -21,10 +21,6 @@ main =
         }
 
 
-
--- MODEL
-
-
 type Model
     = Failure
     | Loading
@@ -33,44 +29,32 @@ type Model
 
 init : () -> ( Model, Cmd Msg )
 init _ =
-    ( Loading, getRandomCatGif )
-
-
-
--- UPDATE
+    ( Loading, Cmd.batch [ getSubTopic "al" ] )
 
 
 type Msg
-    = MorePlease
-    | GotGif (Result Http.Error (List String))
+    = GetTopics
+    | GotMainTopics (Result Http.Error (List String))
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
-        MorePlease ->
-            ( Loading, getRandomCatGif )
+        GetTopics ->
+            ( Loading, getTopics )
 
-        GotGif result ->
+        GotMainTopics result ->
             case result of
-                Ok url ->
-                    ( Success url, Cmd.none )
+                Ok topics ->
+                    ( Success topics, Cmd.none )
 
                 Err _ ->
                     ( Failure, Cmd.none )
 
 
-
--- SUBSCRIPTIONS
-
-
 subscriptions : Model -> Sub Msg
 subscriptions model =
     Sub.none
-
-
-
--- VIEW
 
 
 view : Model -> Html.Html Msg
@@ -87,7 +71,7 @@ viewGif model =
         Failure ->
             Html.div []
                 [ Html.text "I could not load a random cat for some reason. "
-                , Html.button [ Html.Events.onClick MorePlease ] [ Html.text "Try Again!" ]
+                , Html.button [ Html.Events.onClick GetTopics ] [ Html.text "Try Again!" ]
                 ]
 
         Loading ->
@@ -96,8 +80,8 @@ viewGif model =
         Success response ->
             Html.div []
                 [ Html.button
-                    [ Html.Events.onClick MorePlease, Html.Attributes.style "display" "block" ]
-                    [ Html.text "More Please!" ]
+                    [ Html.Events.onClick GetTopics, Html.Attributes.style "display" "block" ]
+                    [ Html.text "Get Topics!" ]
                 , renderList response
                 ]
 
@@ -108,28 +92,33 @@ renderList list =
         (List.map (\l -> Html.li [] [ Html.text l ]) list)
 
 
-subTopic : String -> List String
-subTopic topic =
+
+-- subTopics : List String -> List String
+-- subTopics =
+-- List.concatMap (\l -> subTopic l)
+-- HTTP
+--expectJson : (Result Http.Error a -> msg) -> Decoder a -> Expect msg
+
+
+getSubTopics : List String -> List (Cmd Msg)
+getSubTopics =
+    List.map
+        (\t -> getSubTopic t)
+
+
+getSubTopic : String -> Cmd Msg
+getSubTopic topic =
     Http.get
         { url = "http://data.ssb.no/api/v0/en/table/" ++ topic
-        , expect = Http.expectJson GotGif topicDecoder
+        , expect = Http.expectJson GotMainTopics topicDecoder
         }
 
 
-subTopics : List String -> List String
-subTopics =
-    List.concatMap (\l -> subTopic l)
-
-
-
--- HTTP
-
-
-getRandomCatGif : Cmd Msg
-getRandomCatGif =
+getTopics : Cmd Msg
+getTopics =
     Http.get
         { url = "http://data.ssb.no/api/v0/en/table/"
-        , expect = Http.expectJson GotGif topicDecoder
+        , expect = Http.expectJson GotMainTopics topicDecoder
         }
 
 
