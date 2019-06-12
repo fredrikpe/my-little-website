@@ -1,6 +1,11 @@
+module Main exposing (Model(..), Msg(..), getRandomCatGif, init, main, renderList, subTopics, subscriptions, topicDecoder, update, view, viewGif)
+
 import Browser
-import Html exposing (Html, text, pre)
+import Html
+import Html.Attributes
+import Html.Events
 import Http
+import Json.Decode as Decode
 
 
 
@@ -8,12 +13,12 @@ import Http
 
 
 main =
-  Browser.element
-    { init = init
-    , update = update
-    , subscriptions = subscriptions
-    , view = view
-    }
+    Browser.element
+        { init = init
+        , update = update
+        , subscriptions = subscriptions
+        , view = view
+        }
 
 
 
@@ -21,19 +26,14 @@ main =
 
 
 type Model
-  = Failure
-  | Loading
-  | Success String
+    = Failure
+    | Loading
+    | Success (List String)
 
 
-init : () -> (Model, Cmd Msg)
+init : () -> ( Model, Cmd Msg )
 init _ =
-  ( Loading
-  , Http.get
-      { url = "https://elm-lang.org/assets/public-opinion.txt"
-      , expect = Http.expectString GotText
-      }
-  )
+    ( Loading, getRandomCatGif )
 
 
 
@@ -41,19 +41,23 @@ init _ =
 
 
 type Msg
-  = GotText (Result Http.Error String)
+    = MorePlease
+    | GotGif (Result Http.Error (List String))
 
 
-update : Msg -> Model -> (Model, Cmd Msg)
+update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
-  case msg of
-    GotText result ->
-      case result of
-        Ok fullText ->
-          (Success fullText, Cmd.none)
+    case msg of
+        MorePlease ->
+            ( Loading, getRandomCatGif )
 
-        Err _ ->
-          (Failure, Cmd.none)
+        GotGif result ->
+            case result of
+                Ok url ->
+                    ( Success url, Cmd.none )
+
+                Err _ ->
+                    ( Failure, Cmd.none )
 
 
 
@@ -62,21 +66,73 @@ update msg model =
 
 subscriptions : Model -> Sub Msg
 subscriptions model =
-  Sub.none
+    Sub.none
 
 
 
 -- VIEW
 
 
-view : Model -> Html Msg
+view : Model -> Html.Html Msg
 view model =
-  case model of
-    Failure ->
-      text "I was unable to load your book."
+    Html.div []
+        [ Html.h2 [] [ Html.text "Random Cats" ]
+        , viewGif model
+        ]
 
-    Loading ->
-      text "Loading..."
 
-    Success fullText ->
-      pre [] [ text fullText ]
+viewGif : Model -> Html.Html Msg
+viewGif model =
+    case model of
+        Failure ->
+            Html.div []
+                [ Html.text "I could not load a random cat for some reason. "
+                , Html.button [ Html.Events.onClick MorePlease ] [ Html.text "Try Again!" ]
+                ]
+
+        Loading ->
+            Html.text "Loading..."
+
+        Success response ->
+            Html.div []
+                [ Html.button
+                    [ Html.Events.onClick MorePlease, Html.Attributes.style "display" "block" ]
+                    [ Html.text "More Please!" ]
+                , renderList response
+                ]
+
+
+renderList : List String -> Html.Html msg
+renderList list =
+    Html.ul []
+        (List.map (\l -> Html.li [] [ Html.text l ]) list)
+
+
+subTopic : String -> List String
+subTopic topic =
+    Http.get
+        { url = "http://data.ssb.no/api/v0/en/table/" ++ topic
+        , expect = Http.expectJson GotGif topicDecoder
+        }
+
+
+subTopics : List String -> List String
+subTopics =
+    List.concatMap (\l -> subTopic l)
+
+
+
+-- HTTP
+
+
+getRandomCatGif : Cmd Msg
+getRandomCatGif =
+    Http.get
+        { url = "http://data.ssb.no/api/v0/en/table/"
+        , expect = Http.expectJson GotGif topicDecoder
+        }
+
+
+topicDecoder : Decode.Decoder (List String)
+topicDecoder =
+    Decode.list (Decode.field "id" Decode.string)
