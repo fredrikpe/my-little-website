@@ -2,7 +2,7 @@
 --https://discourse.elm-lang.org/t/using-task-to-send-http-requests/2696/5
 
 
-module Main exposing (Model, Msg(..), init, main, showOrHide, topicHtml, update, view, viewTopics)
+module Main exposing (Model, Msg(..), init, main, tableOnClick, topicHtml, topicListOnClick, update, view, viewTopics)
 
 import Browser
 import Html
@@ -36,28 +36,32 @@ init _ =
 
 
 type Msg
-    = GetTopics
+    = Pass
+    | GetTopics
     | GetSubTopics Topic
     | ShowSubTopics Topic
     | HideSubTopics Topic
     | GotMainTopics (Result Http.Error (List Topic))
-    | GotSubTopics String (Result Http.Error (List Topic))
+    | GotSubTopics Topic (Result Http.Error (List Topic))
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
+        Pass ->
+            ( model, Cmd.none )
+
         GetTopics ->
             ( { topics = [], title = "two" }, Task.attempt GotMainTopics getMainTopics )
 
-        GetSubTopics (Topic topic) ->
-            ( model, Task.attempt (GotSubTopics topic.id) (getSubTopics (Topic topic)) )
+        GetSubTopics topic ->
+            ( model, Task.attempt (GotSubTopics topic) (getSubTopics topic) )
 
-        ShowSubTopics (Topic topic) ->
-            ( { topics = List.map (setHidden topic.id False) model.topics, title = "show" }, Cmd.none )
+        ShowSubTopics topic ->
+            ( { topics = List.map (setHidden topic False) model.topics, title = "show" }, Cmd.none )
 
-        HideSubTopics (Topic topic) ->
-            ( { topics = List.map (setHidden topic.id True) model.topics, title = "hide" }, Cmd.none )
+        HideSubTopics topic ->
+            ( { topics = List.map (setHidden topic True) model.topics, title = "hide" }, Cmd.none )
 
         GotMainTopics result ->
             case result of
@@ -67,10 +71,10 @@ update msg model =
                 Err _ ->
                     ( { topics = [], title = "89" }, Cmd.none )
 
-        GotSubTopics id result ->
+        GotSubTopics topic result ->
             case result of
                 Ok subTopics ->
-                    ( { topics = List.map (addSubTopics id subTopics) model.topics, title = "four" }, Cmd.none )
+                    ( { topics = List.map (addSubTopics topic subTopics) model.topics, title = "four" }, Cmd.none )
 
                 Err _ ->
                     ( { topics = [], title = "x" }, Cmd.none )
@@ -79,7 +83,7 @@ update msg model =
 view : Model -> Html.Html Msg
 view model =
     Html.div []
-        [ Html.h2 [] [ Html.text "Random Cats" ]
+        [ Html.h2 [] [ Html.text "SSB Datasets" ]
         , viewTopics model
         ]
 
@@ -101,26 +105,38 @@ viewTopics model =
 
 
 topicHtml : Topic -> Html.Html Msg
-topicHtml (Topic topic) =
-    Html.li []
-        [ Html.button [ Html.Events.onClick (showOrHide (Topic topic)) ] [ Html.text topic.text ]
-        , Html.ul []
-            (if topic.isHidden then
-                []
+topicHtml topic =
+    case topic of
+        TopicList list ->
+            Html.li []
+                [ Html.button [ Html.Events.onClick (topicListOnClick list) ] [ Html.text list.text ]
+                , Html.ul []
+                    (if list.isHidden then
+                        []
 
-             else
-                List.map topicHtml topic.subTopics
-            )
-        ]
+                     else
+                        List.map topicHtml list.subTopics
+                    )
+                ]
+
+        Table table ->
+            Html.li [] [ Html.button [ Html.Events.onClick (tableOnClick table) ] [ Html.text table.text ] ]
 
 
-showOrHide : Topic -> Msg
-showOrHide (Topic topic) =
-    if List.length topic.subTopics == 0 then
-        GetSubTopics (Topic topic)
 
-    else if topic.isHidden then
-        ShowSubTopics (Topic topic)
+-- How to write this signature?
+
+
+topicListOnClick list =
+    if List.length list.subTopics == 0 then
+        GetSubTopics (TopicList list)
+
+    else if list.isHidden then
+        ShowSubTopics (TopicList list)
 
     else
-        HideSubTopics (Topic topic)
+        HideSubTopics (TopicList list)
+
+
+tableOnClick list =
+    Pass

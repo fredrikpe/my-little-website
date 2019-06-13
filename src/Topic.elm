@@ -1,4 +1,4 @@
-module Topic exposing (Topic(..), addSubTopics, getMainTopics, getSubTopics, setHidden, ssbTopicsUrl, subTopicDecoder, subTopicListDecoder, topicDecoder, topicListDecoder)
+module Topic exposing (Topic(..), addSubTopics, getMainTopics, getSubTopics, listConstructor, mainListDecoder, mainTopicListDecoder, setHidden, ssbTopicsUrl, subListDecoder, subTopicListDecoder, tableConstructor, tableDecoder, topicToString, updateTopic)
 
 import Http
 import HttpUtil
@@ -11,24 +11,42 @@ ssbTopicsUrl =
 
 
 type Topic
-    = Topic { id : String, text : String, subTopics : List Topic, isHidden : Bool }
+    = TopicList { id : String, text : String, subTopics : List Topic, isHidden : Bool }
+    | Table { id : String, text : String }
 
 
-topicConstructor : String -> String -> List Topic -> Topic
-topicConstructor id text subTopics =
-    Topic { id = id, text = text, subTopics = subTopics, isHidden = False }
+listConstructor id text subTopics =
+    TopicList { id = id, text = text, subTopics = subTopics, isHidden = False }
+
+
+tableConstructor id text =
+    Table { id = id, text = text }
+
+
+topicToString topic =
+    case topic of
+        TopicList t ->
+            t.text
+
+        Table t ->
+            t.text
 
 
 getSubTopics : Topic -> Task.Task Http.Error (List Topic)
-getSubTopics (Topic topic) =
-    Http.task
-        { url = ssbTopicsUrl ++ topic.id
-        , method = "Get"
-        , headers = []
-        , body = Http.emptyBody
-        , resolver = Http.stringResolver (HttpUtil.rr (subTopicListDecoder (Topic topic)))
-        , timeout = Nothing
-        }
+getSubTopics topic =
+    case topic of
+        TopicList list ->
+            Http.task
+                { url = ssbTopicsUrl ++ list.id
+                , method = "Get"
+                , headers = []
+                , body = Http.emptyBody
+                , resolver = Http.stringResolver (HttpUtil.responseToResult (subTopicListDecoder (TopicList list)))
+                , timeout = Nothing
+                }
+
+        _ ->
+            Task.fail (Http.BadStatus 3)
 
 
 getMainTopics : Task.Task Http.Error (List Topic)
@@ -38,59 +56,103 @@ getMainTopics =
         , method = "Get"
         , headers = []
         , body = Http.emptyBody
-        , resolver = Http.stringResolver (HttpUtil.rr topicListDecoder)
+        , resolver = Http.stringResolver (HttpUtil.responseToResult mainTopicListDecoder)
         , timeout = Nothing
         }
 
 
-addSubTopics : String -> List Topic -> Topic -> Topic
-addSubTopics id subTopics (Topic topic) =
+updateTopic : Topic -> (Topic -> Topic) -> Topic -> Topic
+updateTopic old f topic =
+    case old of
+        TopicList oldList ->
+            case topic of
+                TopicList list ->
+                    if list.id == oldList.id then
+                        f old
+
+                    else
+                        TopicList { list | subTopics = List.map (updateTopic old f) list.subTopics }
+
+                _ ->
+                    topic
+
+        _ ->
+            topic
+
+
+addSubTopics : Topic -> List Topic -> Topic -> Topic
+addSubTopics old subTopics topic =
     let
-        y =
-            Debug.log "asdf"
+        f old_ =
+            case old_ of
+                TopicList list ->
+                    TopicList { list | subTopics = subTopics }
+
+                _ ->
+                    old_
     in
-    if topic.id == id then
-        Topic { topic | subTopics = subTopics }
-
-    else
-        Topic topic
+    updateTopic old f topic
 
 
-setHidden : String -> Bool -> Topic -> Topic
-setHidden id bool (Topic topic) =
-    if topic.id == id then
-        Topic { topic | isHidden = bool }
+setHidden : Topic -> Bool -> Topic -> Topic
+setHidden old bool topic =
+    let
+        f old_ =
+            case old_ of
+                TopicList list ->
+                    TopicList { list | isHidden = bool }
 
-    else
-        Topic topic
+                _ ->
+                    old_
+    in
+    updateTopic old f topic
 
 
 subTopicListDecoder : Topic -> Decode.Decoder (List Topic)
 subTopicListDecoder topic =
-    Decode.list (subTopicDecoder topic)
+    Decode.list (Decode.oneOf [ tableDecoder topic, subListDecoder topic ])
 
 
-topicListDecoder : Decode.Decoder (List Topic)
-topicListDecoder =
-    Decode.list topicDecoder
+mainTopicListDecoder : Decode.Decoder (List Topic)
+mainTopicListDecoder =
+    Decode.list mainListDecoder
 
 
-subTopicDecoder : Topic -> Decode.Decoder Topic
-subTopicDecoder (Topic topic) =
-    Decode.map3 topicConstructor
-        (Decode.map (\s -> topic.id ++ "/" ++ s)
-            (Decode.field
-                "id"
-                Decode.string
-            )
-        )
-        (Decode.field "text" Decode.string)
-        (Decode.succeed [])
+tableDecoder : Topic -> Decode.Decoder Topic
+tableDecoder topic =
+    case topic of
+        _ ->
+            Decode.map2 tableConstructor
+                (Decode.map (\s -> Maybe.withDefault "UNKNOWN" (List.head (String.split ":" s)))
+                    (Decode.field
+                        "text"
+                        Decode.string
+                    )
+                )
+                (Decode.field "text" Decode.string)
 
 
-topicDecoder : Decode.Decoder Topic
-topicDecoder =
-    Decode.map3 topicConstructor
+subListDecoder : Topic -> Decode.Decoder Topic
+subListDecoder topic =
+    case topic of
+        TopicList list ->
+            Decode.map3 listConstructor
+                (Decode.map (\s -> list.id ++ "/" ++ s)
+                    (Decode.field
+                        "id"
+                        Decode.string
+                    )
+                )
+                (Decode.field "text" Decode.string)
+                (Decode.succeed [])
+
+        _ ->
+            Decode.fail "Unreachable. Trying to decode sub lists for a table!"
+
+
+mainListDecoder : Decode.Decoder Topic
+mainListDecoder =
+    Decode.map3 listConstructor
         (Decode.field "id" Decode.string)
         (Decode.field "text" Decode.string)
         (Decode.succeed [])
