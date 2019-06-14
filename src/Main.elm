@@ -32,17 +32,17 @@ type alias Model =
 
 init : () -> ( Model, Cmd Msg )
 init _ =
-    ( { topics = [], title = "One" }, Task.attempt GotMainTopics Topic.getMainTopics )
+    ( { topics = [], title = "One" }, Task.attempt GotMainTopics (Topic.getTopics "") )
 
 
 type Msg
     = Pass
     | GetTopics
-    | GetSubTopics Topic
-    | ShowSubTopics Topic
-    | HideSubTopics Topic
+    | GetSubTopics String
+    | ShowSubTopics String
+    | HideSubTopics String
     | GotMainTopics (Result Http.Error (List Topic))
-    | GotSubTopics Topic (Result Http.Error (List Topic))
+    | GotSubTopics String (Result Http.Error (List Topic))
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -52,16 +52,16 @@ update msg model =
             ( model, Cmd.none )
 
         GetTopics ->
-            ( { topics = [], title = "two" }, Task.attempt GotMainTopics getMainTopics )
+            ( { topics = [], title = "two" }, Task.attempt GotMainTopics (getTopics "") )
 
-        GetSubTopics topic ->
-            ( model, Task.attempt (GotSubTopics topic) (getSubTopics topic) )
+        GetSubTopics id ->
+            ( model, Task.attempt (GotSubTopics id) (getTopics id) )
 
-        ShowSubTopics topic ->
-            ( { topics = List.map (setHidden topic False) model.topics, title = "show" }, Cmd.none )
+        ShowSubTopics id ->
+            ( { topics = List.map (setHidden id False) model.topics, title = "show" }, Cmd.none )
 
-        HideSubTopics topic ->
-            ( { topics = List.map (setHidden topic True) model.topics, title = "hide" }, Cmd.none )
+        HideSubTopics id ->
+            ( { topics = List.map (setHidden id True) model.topics, title = "hide" }, Cmd.none )
 
         GotMainTopics result ->
             case result of
@@ -129,13 +129,13 @@ topicHtml topic =
 
 topicListOnClick list =
     if List.length list.subTopics == 0 then
-        GetSubTopics (TopicList list)
+        GetSubTopics list.id
 
     else if list.isHidden then
-        ShowSubTopics (TopicList list)
+        ShowSubTopics list.id
 
     else
-        HideSubTopics (TopicList list)
+        HideSubTopics list.id
 
 
 tableOnClick list =

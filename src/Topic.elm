@@ -1,4 +1,4 @@
-module Topic exposing (Topic(..), addSubTopics, getMainTopics, getSubTopics, listConstructor, mainListDecoder, mainTopicListDecoder, setHidden, ssbTopicsUrl, subListDecoder, subTopicListDecoder, tableConstructor, tableDecoder, topicToString, updateTopic)
+module Topic exposing (Topic(..), addSubTopics, getTopics, listConstructor, setHidden, ssbTopicsUrl, subListDecoder, tableConstructor, tableDecoder, topicDecoder, topicListDecoder, topicToString)
 
 import Http
 import HttpUtil
@@ -32,127 +32,87 @@ topicToString topic =
             t.text
 
 
-getSubTopics : Topic -> Task.Task Http.Error (List Topic)
-getSubTopics topic =
-    case topic of
-        TopicList list ->
-            Http.task
-                { url = ssbTopicsUrl ++ list.id
-                , method = "Get"
-                , headers = []
-                , body = Http.emptyBody
-                , resolver = Http.stringResolver (HttpUtil.responseToResult (subTopicListDecoder (TopicList list)))
-                , timeout = Nothing
-                }
-
-        _ ->
-            Task.fail (Http.BadStatus 3)
-
-
-getMainTopics : Task.Task Http.Error (List Topic)
-getMainTopics =
+getTopics : String -> Task.Task Http.Error (List Topic)
+getTopics id =
     Http.task
-        { url = ssbTopicsUrl
+        { url = ssbTopicsUrl ++ id
         , method = "Get"
         , headers = []
         , body = Http.emptyBody
-        , resolver = Http.stringResolver (HttpUtil.responseToResult mainTopicListDecoder)
+        , resolver = Http.stringResolver (HttpUtil.responseToResult (topicListDecoder id))
         , timeout = Nothing
         }
 
 
-updateTopic : Topic -> (Topic -> Topic) -> Topic -> Topic
-updateTopic old f topic =
-    case old of
-        TopicList oldList ->
-            case topic of
-                TopicList list ->
-                    if list.id == oldList.id then
-                        f old
+addSubTopics : String -> List Topic -> Topic -> Topic
+addSubTopics id subTopics topic =
+    case topic of
+        TopicList list ->
+            if list.id == id then
+                TopicList { list | subTopics = subTopics }
 
-                    else
-                        TopicList { list | subTopics = List.map (updateTopic old f) list.subTopics }
-
-                _ ->
-                    topic
+            else
+                TopicList { list | subTopics = List.map (addSubTopics id subTopics) list.subTopics }
 
         _ ->
             topic
 
 
-addSubTopics : Topic -> List Topic -> Topic -> Topic
-addSubTopics old subTopics topic =
-    let
-        f old_ =
-            case old_ of
-                TopicList list ->
-                    TopicList { list | subTopics = subTopics }
-
-                _ ->
-                    old_
-    in
-    updateTopic old f topic
-
-
-setHidden : Topic -> Bool -> Topic -> Topic
-setHidden old bool topic =
-    let
-        f old_ =
-            case old_ of
-                TopicList list ->
-                    TopicList { list | isHidden = bool }
-
-                _ ->
-                    old_
-    in
-    updateTopic old f topic
-
-
-subTopicListDecoder : Topic -> Decode.Decoder (List Topic)
-subTopicListDecoder topic =
-    Decode.list (Decode.oneOf [ tableDecoder topic, subListDecoder topic ])
-
-
-mainTopicListDecoder : Decode.Decoder (List Topic)
-mainTopicListDecoder =
-    Decode.list mainListDecoder
-
-
-tableDecoder : Topic -> Decode.Decoder Topic
-tableDecoder topic =
-    case topic of
-        _ ->
-            Decode.map2 tableConstructor
-                (Decode.map (\s -> Maybe.withDefault "UNKNOWN" (List.head (String.split ":" s)))
-                    (Decode.field
-                        "text"
-                        Decode.string
-                    )
-                )
-                (Decode.field "text" Decode.string)
-
-
-subListDecoder : Topic -> Decode.Decoder Topic
-subListDecoder topic =
+setHidden : String -> Bool -> Topic -> Topic
+setHidden id bool topic =
     case topic of
         TopicList list ->
-            Decode.map3 listConstructor
-                (Decode.map (\s -> list.id ++ "/" ++ s)
-                    (Decode.field
-                        "id"
-                        Decode.string
-                    )
-                )
-                (Decode.field "text" Decode.string)
-                (Decode.succeed [])
+            if list.id == id then
+                TopicList { list | isHidden = bool }
+
+            else
+                TopicList { list | subTopics = List.map (setHidden id bool) list.subTopics }
 
         _ ->
-            Decode.fail "Unreachable. Trying to decode sub lists for a table!"
+            topic
 
 
-mainListDecoder : Decode.Decoder Topic
-mainListDecoder =
+topicListDecoder id =
+    Decode.list (topicDecoder id)
+
+
+topicDecoder id =
+    Decode.field "type" Decode.string
+        |> Decode.andThen
+            (\t ->
+                case t of
+                    "l" ->
+                        subListDecoder id
+
+                    "t" ->
+                        tableDecoder
+
+                    _ ->
+                        Decode.fail "Couldn't decode error"
+            )
+
+
+tableDecoder : Decode.Decoder Topic
+tableDecoder =
+    Decode.map2 tableConstructor
+        (Decode.map
+            (\s -> Maybe.withDefault "UNKNOWN" (List.head (String.split ":" s)))
+            (Decode.field
+                "text"
+                Decode.string
+            )
+        )
+        (Decode.field "text" Decode.string)
+
+
+subListDecoder : String -> Decode.Decoder Topic
+subListDecoder id =
     Decode.map3 listConstructor
-        (Decode.field "id" Decode.string)
+        (Decode.map (\s -> id ++ "/" ++ s)
+            (Decode.field
+                "id"
+                Decode.string
+            )
+        )
         (Decode.field "text" Decode.string)
         (Decode.succeed [])
