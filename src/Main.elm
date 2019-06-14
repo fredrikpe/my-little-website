@@ -39,10 +39,12 @@ type Msg
     = Pass
     | GetTopics
     | GetSubTopics String
-    | ShowSubTopics String
-    | HideSubTopics String
+    | GetTableConfig String
+    | Show String
+    | Hide String
     | GotMainTopics (Result Http.Error (List Topic))
     | GotSubTopics String (Result Http.Error (List Topic))
+    | GotTableConfig String (Result Http.Error TableConfig)
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -57,10 +59,13 @@ update msg model =
         GetSubTopics id ->
             ( model, Task.attempt (GotSubTopics id) (getTopics id) )
 
-        ShowSubTopics id ->
+        GetTableConfig id ->
+            ( model, Task.attempt (GotTableConfig id) (getTableConfig id) )
+
+        Show id ->
             ( { topics = List.map (setHidden id False) model.topics, title = "show" }, Cmd.none )
 
-        HideSubTopics id ->
+        Hide id ->
             ( { topics = List.map (setHidden id True) model.topics, title = "hide" }, Cmd.none )
 
         GotMainTopics result ->
@@ -71,13 +76,21 @@ update msg model =
                 Err _ ->
                     ( { topics = [], title = "89" }, Cmd.none )
 
-        GotSubTopics topic result ->
+        GotSubTopics id result ->
             case result of
                 Ok subTopics ->
-                    ( { topics = List.map (addSubTopics topic subTopics) model.topics, title = "four" }, Cmd.none )
+                    ( { topics = List.map (addSubTopics id subTopics) model.topics, title = "four" }, Cmd.none )
 
                 Err _ ->
-                    ( { topics = [], title = "x" }, Cmd.none )
+                    ( { topics = [], title = "error" }, Cmd.none )
+
+        GotTableConfig id result ->
+            case result of
+                Ok config ->
+                    ( { topics = List.map (addTableConfig id config) model.topics, title = "four" }, Cmd.none )
+
+                Err _ ->
+                    ( { topics = [], title = "error" }, Cmd.none )
 
 
 view : Model -> Html.Html Msg
@@ -120,7 +133,26 @@ topicHtml topic =
                 ]
 
         Table table ->
-            Html.li [] [ Html.button [ Html.Events.onClick (tableOnClick table) ] [ Html.text table.text ] ]
+            Html.li []
+                [ Html.button [ Html.Events.onClick (tableOnClick table) ] [ Html.text table.text ]
+                , Html.div []
+                    (if table.isHidden then
+                        []
+
+                     else
+                        [ configHtml table.config ]
+                    )
+                ]
+
+
+configHtml : Maybe TableConfig -> Html.Html Msg
+configHtml config =
+    case config of
+        Just c ->
+            Html.text c.title
+
+        Nothing ->
+            Html.text ""
 
 
 
@@ -132,11 +164,20 @@ topicListOnClick list =
         GetSubTopics list.id
 
     else if list.isHidden then
-        ShowSubTopics list.id
+        Show list.id
 
     else
-        HideSubTopics list.id
+        Hide list.id
 
 
-tableOnClick list =
-    Pass
+tableOnClick table =
+    case table.config of
+        Just config ->
+            if table.isHidden then
+                Show table.id
+
+            else
+                Hide table.id
+
+        Nothing ->
+            GetTableConfig table.id

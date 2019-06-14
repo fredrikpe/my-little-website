@@ -1,4 +1,4 @@
-module Topic exposing (Topic(..), addSubTopics, getTopics, listConstructor, setHidden, ssbTopicsUrl, subListDecoder, tableConstructor, tableDecoder, topicDecoder, topicListDecoder, topicToString)
+module Topic exposing (TableConfig, Topic(..), Variable, addSubTopics, addTableConfig, getTableConfig, getTopics, httpGetFromJson, listConstructor, setHidden, ssbTopicsUrl, subListDecoder, tableConfigDecoder, tableConstructor, tableDecoder, topicDecoder, topicListDecoder, variableDecoder)
 
 import Http
 import HttpUtil
@@ -12,7 +12,15 @@ ssbTopicsUrl =
 
 type Topic
     = TopicList { id : String, text : String, subTopics : List Topic, isHidden : Bool }
-    | Table { id : String, text : String }
+    | Table { id : String, text : String, config : Maybe TableConfig, isHidden : Bool }
+
+
+type alias TableConfig =
+    { title : String, variables : List Variable }
+
+
+type alias Variable =
+    { code : String, text : String, values : List String, valueTexts : List String }
 
 
 listConstructor id text subTopics =
@@ -20,28 +28,29 @@ listConstructor id text subTopics =
 
 
 tableConstructor id text =
-    Table { id = id, text = text }
+    Table { id = id, text = text, config = Nothing, isHidden = False }
 
 
-topicToString topic =
-    case topic of
-        TopicList t ->
-            t.text
-
-        Table t ->
-            t.text
+httpGetFromJson : String -> Decode.Decoder a -> Task.Task Http.Error a
+httpGetFromJson url decoder =
+    Http.task
+        { url = url
+        , method = "Get"
+        , headers = []
+        , body = Http.emptyBody
+        , resolver = Http.stringResolver (HttpUtil.responseToResult decoder)
+        , timeout = Nothing
+        }
 
 
 getTopics : String -> Task.Task Http.Error (List Topic)
 getTopics id =
-    Http.task
-        { url = ssbTopicsUrl ++ id
-        , method = "Get"
-        , headers = []
-        , body = Http.emptyBody
-        , resolver = Http.stringResolver (HttpUtil.responseToResult (topicListDecoder id))
-        , timeout = Nothing
-        }
+    httpGetFromJson (ssbTopicsUrl ++ id) (topicListDecoder id)
+
+
+getTableConfig : String -> Task.Task Http.Error TableConfig
+getTableConfig id =
+    httpGetFromJson (ssbTopicsUrl ++ id) tableConfigDecoder
 
 
 addSubTopics : String -> List Topic -> Topic -> Topic
@@ -58,6 +67,19 @@ addSubTopics id subTopics topic =
             topic
 
 
+addTableConfig id config topic =
+    case topic of
+        TopicList list ->
+            TopicList { list | subTopics = List.map (addTableConfig id config) list.subTopics }
+
+        Table table ->
+            if table.id == id then
+                Table { table | config = Just config }
+
+            else
+                topic
+
+
 setHidden : String -> Bool -> Topic -> Topic
 setHidden id bool topic =
     case topic of
@@ -68,8 +90,12 @@ setHidden id bool topic =
             else
                 TopicList { list | subTopics = List.map (setHidden id bool) list.subTopics }
 
-        _ ->
-            topic
+        Table table ->
+            if table.id == id then
+                Table { table | isHidden = bool }
+
+            else
+                topic
 
 
 topicListDecoder id =
@@ -116,3 +142,19 @@ subListDecoder id =
         )
         (Decode.field "text" Decode.string)
         (Decode.succeed [])
+
+
+tableConfigDecoder : Decode.Decoder TableConfig
+tableConfigDecoder =
+    Decode.map2 TableConfig
+        (Decode.field "title" Decode.string)
+        (Decode.field "variables" (Decode.list variableDecoder))
+
+
+variableDecoder : Decode.Decoder Variable
+variableDecoder =
+    Decode.map4 Variable
+        (Decode.field "code" Decode.string)
+        (Decode.field "text" Decode.string)
+        (Decode.field "values" (Decode.list Decode.string))
+        (Decode.field "valueTexts" (Decode.list Decode.string))

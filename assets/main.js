@@ -5001,96 +5001,6 @@ var author$project$HttpUtil$responseToResult = F2(
 				return elm$core$Result$Err(elm$http$Http$NetworkError);
 		}
 	});
-var author$project$Topic$ssbTopicsUrl = 'http://data.ssb.no/api/v0/en/table/';
-var author$project$Topic$TopicList = function (a) {
-	return {$: 'TopicList', a: a};
-};
-var author$project$Topic$listConstructor = F3(
-	function (id, text, subTopics) {
-		return author$project$Topic$TopicList(
-			{id: id, isHidden: false, subTopics: subTopics, text: text});
-	});
-var elm$json$Json$Decode$field = _Json_decodeField;
-var elm$json$Json$Decode$map = _Json_map1;
-var elm$json$Json$Decode$map3 = _Json_map3;
-var elm$json$Json$Decode$string = _Json_decodeString;
-var elm$json$Json$Decode$succeed = _Json_succeed;
-var author$project$Topic$subListDecoder = function (id) {
-	return A4(
-		elm$json$Json$Decode$map3,
-		author$project$Topic$listConstructor,
-		A2(
-			elm$json$Json$Decode$map,
-			function (s) {
-				return id + ('/' + s);
-			},
-			A2(elm$json$Json$Decode$field, 'id', elm$json$Json$Decode$string)),
-		A2(elm$json$Json$Decode$field, 'text', elm$json$Json$Decode$string),
-		elm$json$Json$Decode$succeed(_List_Nil));
-};
-var author$project$Topic$Table = function (a) {
-	return {$: 'Table', a: a};
-};
-var author$project$Topic$tableConstructor = F2(
-	function (id, text) {
-		return author$project$Topic$Table(
-			{id: id, text: text});
-	});
-var elm$core$List$head = function (list) {
-	if (list.b) {
-		var x = list.a;
-		var xs = list.b;
-		return elm$core$Maybe$Just(x);
-	} else {
-		return elm$core$Maybe$Nothing;
-	}
-};
-var elm$core$Maybe$withDefault = F2(
-	function (_default, maybe) {
-		if (maybe.$ === 'Just') {
-			var value = maybe.a;
-			return value;
-		} else {
-			return _default;
-		}
-	});
-var elm$json$Json$Decode$map2 = _Json_map2;
-var author$project$Topic$tableDecoder = A3(
-	elm$json$Json$Decode$map2,
-	author$project$Topic$tableConstructor,
-	A2(
-		elm$json$Json$Decode$map,
-		function (s) {
-			return A2(
-				elm$core$Maybe$withDefault,
-				'UNKNOWN',
-				elm$core$List$head(
-					A2(elm$core$String$split, ':', s)));
-		},
-		A2(elm$json$Json$Decode$field, 'text', elm$json$Json$Decode$string)),
-	A2(elm$json$Json$Decode$field, 'text', elm$json$Json$Decode$string));
-var elm$json$Json$Decode$andThen = _Json_andThen;
-var elm$json$Json$Decode$fail = _Json_fail;
-var author$project$Topic$topicDecoder = function (id) {
-	return A2(
-		elm$json$Json$Decode$andThen,
-		function (t) {
-			switch (t) {
-				case 'l':
-					return author$project$Topic$subListDecoder(id);
-				case 't':
-					return author$project$Topic$tableDecoder;
-				default:
-					return elm$json$Json$Decode$fail('Couldn\'t decode error');
-			}
-		},
-		A2(elm$json$Json$Decode$field, 'type', elm$json$Json$Decode$string));
-};
-var elm$json$Json$Decode$list = _Json_decodeList;
-var author$project$Topic$topicListDecoder = function (id) {
-	return elm$json$Json$Decode$list(
-		author$project$Topic$topicDecoder(id));
-};
 var elm$core$Dict$RBEmpty_elm_builtin = {$: 'RBEmpty_elm_builtin'};
 var elm$core$Dict$empty = elm$core$Dict$RBEmpty_elm_builtin;
 var elm$core$Basics$compare = _Utils_compare;
@@ -5668,18 +5578,114 @@ var elm$http$Http$task = function (r) {
 		elm$http$Http$resultToTask,
 		{allowCookiesFromOtherDomains: false, body: r.body, expect: r.resolver, headers: r.headers, method: r.method, timeout: r.timeout, tracker: elm$core$Maybe$Nothing, url: r.url});
 };
+var author$project$Topic$httpGetFromJson = F2(
+	function (url, decoder) {
+		return elm$http$Http$task(
+			{
+				body: elm$http$Http$emptyBody,
+				headers: _List_Nil,
+				method: 'Get',
+				resolver: elm$http$Http$stringResolver(
+					author$project$HttpUtil$responseToResult(decoder)),
+				timeout: elm$core$Maybe$Nothing,
+				url: url
+			});
+	});
+var author$project$Topic$ssbTopicsUrl = 'http://data.ssb.no/api/v0/en/table/';
+var author$project$Topic$TopicList = function (a) {
+	return {$: 'TopicList', a: a};
+};
+var author$project$Topic$listConstructor = F3(
+	function (id, text, subTopics) {
+		return author$project$Topic$TopicList(
+			{id: id, isHidden: false, subTopics: subTopics, text: text});
+	});
+var elm$json$Json$Decode$field = _Json_decodeField;
+var elm$json$Json$Decode$map = _Json_map1;
+var elm$json$Json$Decode$map3 = _Json_map3;
+var elm$json$Json$Decode$string = _Json_decodeString;
+var elm$json$Json$Decode$succeed = _Json_succeed;
+var author$project$Topic$subListDecoder = function (id) {
+	return A4(
+		elm$json$Json$Decode$map3,
+		author$project$Topic$listConstructor,
+		A2(
+			elm$json$Json$Decode$map,
+			function (s) {
+				return id + ('/' + s);
+			},
+			A2(elm$json$Json$Decode$field, 'id', elm$json$Json$Decode$string)),
+		A2(elm$json$Json$Decode$field, 'text', elm$json$Json$Decode$string),
+		elm$json$Json$Decode$succeed(_List_Nil));
+};
+var author$project$Topic$Table = function (a) {
+	return {$: 'Table', a: a};
+};
+var author$project$Topic$tableConstructor = F2(
+	function (id, text) {
+		return author$project$Topic$Table(
+			{config: elm$core$Maybe$Nothing, id: id, isHidden: false, text: text});
+	});
+var elm$core$List$head = function (list) {
+	if (list.b) {
+		var x = list.a;
+		var xs = list.b;
+		return elm$core$Maybe$Just(x);
+	} else {
+		return elm$core$Maybe$Nothing;
+	}
+};
+var elm$core$Maybe$withDefault = F2(
+	function (_default, maybe) {
+		if (maybe.$ === 'Just') {
+			var value = maybe.a;
+			return value;
+		} else {
+			return _default;
+		}
+	});
+var elm$json$Json$Decode$map2 = _Json_map2;
+var author$project$Topic$tableDecoder = A3(
+	elm$json$Json$Decode$map2,
+	author$project$Topic$tableConstructor,
+	A2(
+		elm$json$Json$Decode$map,
+		function (s) {
+			return A2(
+				elm$core$Maybe$withDefault,
+				'UNKNOWN',
+				elm$core$List$head(
+					A2(elm$core$String$split, ':', s)));
+		},
+		A2(elm$json$Json$Decode$field, 'text', elm$json$Json$Decode$string)),
+	A2(elm$json$Json$Decode$field, 'text', elm$json$Json$Decode$string));
+var elm$json$Json$Decode$andThen = _Json_andThen;
+var elm$json$Json$Decode$fail = _Json_fail;
+var author$project$Topic$topicDecoder = function (id) {
+	return A2(
+		elm$json$Json$Decode$andThen,
+		function (t) {
+			switch (t) {
+				case 'l':
+					return author$project$Topic$subListDecoder(id);
+				case 't':
+					return author$project$Topic$tableDecoder;
+				default:
+					return elm$json$Json$Decode$fail('Couldn\'t decode error');
+			}
+		},
+		A2(elm$json$Json$Decode$field, 'type', elm$json$Json$Decode$string));
+};
+var elm$json$Json$Decode$list = _Json_decodeList;
+var author$project$Topic$topicListDecoder = function (id) {
+	return elm$json$Json$Decode$list(
+		author$project$Topic$topicDecoder(id));
+};
 var author$project$Topic$getTopics = function (id) {
-	return elm$http$Http$task(
-		{
-			body: elm$http$Http$emptyBody,
-			headers: _List_Nil,
-			method: 'Get',
-			resolver: elm$http$Http$stringResolver(
-				author$project$HttpUtil$responseToResult(
-					author$project$Topic$topicListDecoder(id))),
-			timeout: elm$core$Maybe$Nothing,
-			url: _Utils_ap(author$project$Topic$ssbTopicsUrl, id)
-		});
+	return A2(
+		author$project$Topic$httpGetFromJson,
+		_Utils_ap(author$project$Topic$ssbTopicsUrl, id),
+		author$project$Topic$topicListDecoder(id));
 };
 var elm$core$Basics$composeL = F3(
 	function (g, f, x) {
@@ -5857,6 +5863,10 @@ var author$project$Main$GotSubTopics = F2(
 	function (a, b) {
 		return {$: 'GotSubTopics', a: a, b: b};
 	});
+var author$project$Main$GotTableConfig = F2(
+	function (a, b) {
+		return {$: 'GotTableConfig', a: a, b: b};
+	});
 var author$project$Topic$addSubTopics = F3(
 	function (id, subTopics, topic) {
 		if (topic.$ === 'TopicList') {
@@ -5877,6 +5887,65 @@ var author$project$Topic$addSubTopics = F3(
 			return topic;
 		}
 	});
+var author$project$Topic$addTableConfig = F3(
+	function (id, config, topic) {
+		if (topic.$ === 'TopicList') {
+			var list = topic.a;
+			return author$project$Topic$TopicList(
+				_Utils_update(
+					list,
+					{
+						subTopics: A2(
+							elm$core$List$map,
+							A2(author$project$Topic$addTableConfig, id, config),
+							list.subTopics)
+					}));
+		} else {
+			var table = topic.a;
+			return _Utils_eq(table.id, id) ? author$project$Topic$Table(
+				_Utils_update(
+					table,
+					{
+						config: elm$core$Maybe$Just(config)
+					})) : topic;
+		}
+	});
+var author$project$Topic$TableConfig = F2(
+	function (title, variables) {
+		return {title: title, variables: variables};
+	});
+var author$project$Topic$Variable = F4(
+	function (code, text, values, valueTexts) {
+		return {code: code, text: text, valueTexts: valueTexts, values: values};
+	});
+var elm$json$Json$Decode$map4 = _Json_map4;
+var author$project$Topic$variableDecoder = A5(
+	elm$json$Json$Decode$map4,
+	author$project$Topic$Variable,
+	A2(elm$json$Json$Decode$field, 'code', elm$json$Json$Decode$string),
+	A2(elm$json$Json$Decode$field, 'text', elm$json$Json$Decode$string),
+	A2(
+		elm$json$Json$Decode$field,
+		'values',
+		elm$json$Json$Decode$list(elm$json$Json$Decode$string)),
+	A2(
+		elm$json$Json$Decode$field,
+		'valueTexts',
+		elm$json$Json$Decode$list(elm$json$Json$Decode$string)));
+var author$project$Topic$tableConfigDecoder = A3(
+	elm$json$Json$Decode$map2,
+	author$project$Topic$TableConfig,
+	A2(elm$json$Json$Decode$field, 'title', elm$json$Json$Decode$string),
+	A2(
+		elm$json$Json$Decode$field,
+		'variables',
+		elm$json$Json$Decode$list(author$project$Topic$variableDecoder)));
+var author$project$Topic$getTableConfig = function (id) {
+	return A2(
+		author$project$Topic$httpGetFromJson,
+		_Utils_ap(author$project$Topic$ssbTopicsUrl, id),
+		author$project$Topic$tableConfigDecoder);
+};
 var author$project$Topic$setHidden = F3(
 	function (id, bool, topic) {
 		if (topic.$ === 'TopicList') {
@@ -5894,7 +5963,11 @@ var author$project$Topic$setHidden = F3(
 							list.subTopics)
 					}));
 		} else {
-			return topic;
+			var table = topic.a;
+			return _Utils_eq(table.id, id) ? author$project$Topic$Table(
+				_Utils_update(
+					table,
+					{isHidden: bool})) : topic;
 		}
 	});
 var elm$core$Platform$Cmd$batch = _Platform_batch;
@@ -5919,7 +5992,15 @@ var author$project$Main$update = F2(
 						elm$core$Task$attempt,
 						author$project$Main$GotSubTopics(id),
 						author$project$Topic$getTopics(id)));
-			case 'ShowSubTopics':
+			case 'GetTableConfig':
+				var id = msg.a;
+				return _Utils_Tuple2(
+					model,
+					A2(
+						elm$core$Task$attempt,
+						author$project$Main$GotTableConfig(id),
+						author$project$Topic$getTableConfig(id)));
+			case 'Show':
 				var id = msg.a;
 				return _Utils_Tuple2(
 					{
@@ -5930,7 +6011,7 @@ var author$project$Main$update = F2(
 							model.topics)
 					},
 					elm$core$Platform$Cmd$none);
-			case 'HideSubTopics':
+			case 'Hide':
 				var id = msg.a;
 				return _Utils_Tuple2(
 					{
@@ -5953,8 +6034,8 @@ var author$project$Main$update = F2(
 						{title: '89', topics: _List_Nil},
 						elm$core$Platform$Cmd$none);
 				}
-			default:
-				var topic = msg.a;
+			case 'GotSubTopics':
+				var id = msg.a;
 				var result = msg.b;
 				if (result.$ === 'Ok') {
 					var subTopics = result.a;
@@ -5963,34 +6044,37 @@ var author$project$Main$update = F2(
 							title: 'four',
 							topics: A2(
 								elm$core$List$map,
-								A2(author$project$Topic$addSubTopics, topic, subTopics),
+								A2(author$project$Topic$addSubTopics, id, subTopics),
 								model.topics)
 						},
 						elm$core$Platform$Cmd$none);
 				} else {
 					return _Utils_Tuple2(
-						{title: 'x', topics: _List_Nil},
+						{title: 'error', topics: _List_Nil},
+						elm$core$Platform$Cmd$none);
+				}
+			default:
+				var id = msg.a;
+				var result = msg.b;
+				if (result.$ === 'Ok') {
+					var config = result.a;
+					return _Utils_Tuple2(
+						{
+							title: 'four',
+							topics: A2(
+								elm$core$List$map,
+								A2(author$project$Topic$addTableConfig, id, config),
+								model.topics)
+						},
+						elm$core$Platform$Cmd$none);
+				} else {
+					return _Utils_Tuple2(
+						{title: 'error', topics: _List_Nil},
 						elm$core$Platform$Cmd$none);
 				}
 		}
 	});
 var author$project$Main$GetTopics = {$: 'GetTopics'};
-var author$project$Main$Pass = {$: 'Pass'};
-var author$project$Main$tableOnClick = function (list) {
-	return author$project$Main$Pass;
-};
-var author$project$Main$GetSubTopics = function (a) {
-	return {$: 'GetSubTopics', a: a};
-};
-var author$project$Main$HideSubTopics = function (a) {
-	return {$: 'HideSubTopics', a: a};
-};
-var author$project$Main$ShowSubTopics = function (a) {
-	return {$: 'ShowSubTopics', a: a};
-};
-var author$project$Main$topicListOnClick = function (list) {
-	return (!elm$core$List$length(list.subTopics)) ? author$project$Main$GetSubTopics(list.id) : (list.isHidden ? author$project$Main$ShowSubTopics(list.id) : author$project$Main$HideSubTopics(list.id));
-};
 var elm$virtual_dom$VirtualDom$toHandlerInt = function (handler) {
 	switch (handler.$) {
 		case 'Normal':
@@ -6003,10 +6087,43 @@ var elm$virtual_dom$VirtualDom$toHandlerInt = function (handler) {
 			return 3;
 	}
 };
-var elm$html$Html$button = _VirtualDom_node('button');
-var elm$html$Html$li = _VirtualDom_node('li');
 var elm$virtual_dom$VirtualDom$text = _VirtualDom_text;
 var elm$html$Html$text = elm$virtual_dom$VirtualDom$text;
+var author$project$Main$configHtml = function (config) {
+	if (config.$ === 'Just') {
+		var c = config.a;
+		return elm$html$Html$text(c.title);
+	} else {
+		return elm$html$Html$text('');
+	}
+};
+var author$project$Main$GetTableConfig = function (a) {
+	return {$: 'GetTableConfig', a: a};
+};
+var author$project$Main$Hide = function (a) {
+	return {$: 'Hide', a: a};
+};
+var author$project$Main$Show = function (a) {
+	return {$: 'Show', a: a};
+};
+var author$project$Main$tableOnClick = function (table) {
+	var _n0 = table.config;
+	if (_n0.$ === 'Just') {
+		var config = _n0.a;
+		return table.isHidden ? author$project$Main$Show(table.id) : author$project$Main$Hide(table.id);
+	} else {
+		return author$project$Main$GetTableConfig(table.id);
+	}
+};
+var author$project$Main$GetSubTopics = function (a) {
+	return {$: 'GetSubTopics', a: a};
+};
+var author$project$Main$topicListOnClick = function (list) {
+	return (!elm$core$List$length(list.subTopics)) ? author$project$Main$GetSubTopics(list.id) : (list.isHidden ? author$project$Main$Show(list.id) : author$project$Main$Hide(list.id));
+};
+var elm$html$Html$button = _VirtualDom_node('button');
+var elm$html$Html$div = _VirtualDom_node('div');
+var elm$html$Html$li = _VirtualDom_node('li');
 var elm$html$Html$ul = _VirtualDom_node('ul');
 var elm$virtual_dom$VirtualDom$Normal = function (a) {
 	return {$: 'Normal', a: a};
@@ -6066,11 +6183,17 @@ var author$project$Main$topicHtml = function (topic) {
 					_List_fromArray(
 						[
 							elm$html$Html$text(table.text)
+						])),
+					A2(
+					elm$html$Html$div,
+					_List_Nil,
+					table.isHidden ? _List_Nil : _List_fromArray(
+						[
+							author$project$Main$configHtml(table.config)
 						]))
 				]));
 	}
 };
-var elm$html$Html$div = _VirtualDom_node('div');
 var elm$virtual_dom$VirtualDom$style = _VirtualDom_style;
 var elm$html$Html$Attributes$style = elm$virtual_dom$VirtualDom$style;
 var author$project$Main$viewTopics = function (model) {
