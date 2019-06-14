@@ -1,8 +1,9 @@
-module Topic exposing (TableConfig, Topic(..), Variable, addSubTopics, addTableConfig, getTableConfig, getTopics, listConstructor, setHidden, ssbTopicsUrl, subListDecoder, tableConfigDecoder, tableConstructor, tableDecoder, topicDecoder, topicListDecoder, variableDecoder)
+module Topic exposing (Config, TableAndConfig, TableData, Topic(..), Variable, addSubTopics, addTableConfig, configEncoder, getData, getTableConfig, getTopics, listConstructor, setHidden, ssbTopicsUrl, subListDecoder, tableConfigDecoder, tableConstructor, tableDataDecoder, tableDecoder, topicDecoder, topicListDecoder, variableDecoder)
 
 import Http
 import HttpUtil
 import Json.Decode as Decode
+import Json.Encode as Encode
 import Task
 
 
@@ -12,15 +13,23 @@ ssbTopicsUrl =
 
 type Topic
     = TopicList { id : String, text : String, subTopics : List Topic, isHidden : Bool }
-    | Table { id : String, text : String, config : Maybe TableConfig, isHidden : Bool }
+    | Table { id : String, text : String, config : Maybe Config, isHidden : Bool }
 
 
-type alias TableConfig =
+type alias TableAndConfig =
+    { id : String, variables : List Variable }
+
+
+type alias Config =
     { title : String, variables : List Variable }
 
 
 type alias Variable =
     { code : String, text : String, values : List String, valueTexts : List String }
+
+
+type alias TableData =
+    { dummy : String }
 
 
 listConstructor id text subTopics =
@@ -36,9 +45,14 @@ getTopics id =
     HttpUtil.httpGetFromJson (ssbTopicsUrl ++ id) (topicListDecoder id)
 
 
-getTableConfig : String -> Task.Task Http.Error TableConfig
+getTableConfig : String -> Task.Task Http.Error Config
 getTableConfig id =
     HttpUtil.httpGetFromJson (ssbTopicsUrl ++ id) tableConfigDecoder
+
+
+getData : String -> Config -> Task.Task Http.Error TableData
+getData id config =
+    HttpUtil.httpPostFromJson (ssbTopicsUrl ++ id) (configEncoder config) tableDataDecoder
 
 
 addSubTopics : String -> List Topic -> Topic -> Topic
@@ -133,9 +147,9 @@ subListDecoder id =
         (Decode.succeed [])
 
 
-tableConfigDecoder : Decode.Decoder TableConfig
+tableConfigDecoder : Decode.Decoder Config
 tableConfigDecoder =
-    Decode.map2 TableConfig
+    Decode.map2 Config
         (Decode.field "title" Decode.string)
         (Decode.field "variables" (Decode.list variableDecoder))
 
@@ -147,3 +161,32 @@ variableDecoder =
         (Decode.field "text" Decode.string)
         (Decode.field "values" (Decode.list Decode.string))
         (Decode.field "valueTexts" (Decode.list Decode.string))
+
+
+tableDataDecoder : Decode.Decoder TableData
+tableDataDecoder =
+    Decode.map TableData
+        (Decode.field "dummy" Decode.string)
+
+
+configEncoder : Config -> Encode.Value
+configEncoder config =
+    Encode.object
+        [ ( "query"
+          , Encode.list
+                (\v ->
+                    Encode.object
+                        [ ( "code", Encode.string v.code )
+                        , ( "selection"
+                          , Encode.object
+                                [ ( "filter", Encode.string "item" )
+                                , ( "values", Encode.list (\x -> Encode.string x) v.values )
+                                ]
+                          )
+                        , ( "selection", Encode.object [] )
+                        ]
+                )
+                config.variables
+          )
+        , ( "response", Encode.object [ ( "format", Encode.string "json-stat2" ) ] )
+        ]

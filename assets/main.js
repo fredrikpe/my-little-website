@@ -5853,7 +5853,7 @@ var elm$core$Task$attempt = F2(
 	});
 var author$project$Main$init = function (_n0) {
 	return _Utils_Tuple2(
-		{isLoading: false, title: 'One', topics: _List_Nil},
+		{isLoading: false, tableAndConfig: elm$core$Maybe$Nothing, title: 'One', topics: _List_Nil},
 		A2(
 			elm$core$Task$attempt,
 			author$project$Main$GotMainTopics,
@@ -5863,11 +5863,14 @@ var author$project$Main$GotSubTopics = F2(
 	function (a, b) {
 		return {$: 'GotSubTopics', a: a, b: b};
 	});
-var author$project$Main$GotTableConfig = F2(
+var author$project$Main$errorModel = {isLoading: false, tableAndConfig: elm$core$Maybe$Nothing, title: 'Error!', topics: _List_Nil};
+var author$project$Main$TableMessage = function (a) {
+	return {$: 'TableMessage', a: a};
+};
+var author$project$Main$TblGotConfig = F2(
 	function (a, b) {
-		return {$: 'GotTableConfig', a: a, b: b};
+		return {$: 'TblGotConfig', a: a, b: b};
 	});
-var author$project$Main$errorModel = {isLoading: false, title: 'Error!', topics: _List_Nil};
 var author$project$Main$notLoading = function (model) {
 	return _Utils_update(
 		model,
@@ -5879,26 +5882,6 @@ var author$project$Main$updateTopics = F2(
 			_Utils_update(
 				model,
 				{topics: topics}));
-	});
-var author$project$Topic$addSubTopics = F3(
-	function (id, subTopics, topic) {
-		if (topic.$ === 'TopicList') {
-			var list = topic.a;
-			return _Utils_eq(list.id, id) ? author$project$Topic$TopicList(
-				_Utils_update(
-					list,
-					{subTopics: subTopics})) : author$project$Topic$TopicList(
-				_Utils_update(
-					list,
-					{
-						subTopics: A2(
-							elm$core$List$map,
-							A2(author$project$Topic$addSubTopics, id, subTopics),
-							list.subTopics)
-					}));
-		} else {
-			return topic;
-		}
 	});
 var author$project$Topic$addTableConfig = F3(
 	function (id, config, topic) {
@@ -5924,7 +5907,7 @@ var author$project$Topic$addTableConfig = F3(
 					})) : topic;
 		}
 	});
-var author$project$Topic$TableConfig = F2(
+var author$project$Topic$Config = F2(
 	function (title, variables) {
 		return {title: title, variables: variables};
 	});
@@ -5948,7 +5931,7 @@ var author$project$Topic$variableDecoder = A5(
 		elm$json$Json$Decode$list(elm$json$Json$Decode$string)));
 var author$project$Topic$tableConfigDecoder = A3(
 	elm$json$Json$Decode$map2,
-	author$project$Topic$TableConfig,
+	author$project$Topic$Config,
 	A2(elm$json$Json$Decode$field, 'title', elm$json$Json$Decode$string),
 	A2(
 		elm$json$Json$Decode$field,
@@ -5989,6 +5972,84 @@ var author$project$Topic$setHidden = F3(
 	});
 var elm$core$Platform$Cmd$batch = _Platform_batch;
 var elm$core$Platform$Cmd$none = elm$core$Platform$Cmd$batch(_List_Nil);
+var author$project$Main$handleTableMsg = F2(
+	function (msg, model) {
+		switch (msg.$) {
+			case 'TblShow':
+				var id = msg.a;
+				return _Utils_Tuple2(
+					A2(
+						author$project$Main$updateTopics,
+						model,
+						A2(
+							elm$core$List$map,
+							A2(author$project$Topic$setHidden, id, false),
+							model.topics)),
+					elm$core$Platform$Cmd$none);
+			case 'TblHide':
+				var id = msg.a;
+				return _Utils_Tuple2(
+					A2(
+						author$project$Main$updateTopics,
+						model,
+						A2(
+							elm$core$List$map,
+							A2(author$project$Topic$setHidden, id, true),
+							model.topics)),
+					elm$core$Platform$Cmd$none);
+			case 'TblGetConfig':
+				var id = msg.a;
+				return _Utils_Tuple2(
+					model,
+					A2(
+						elm$core$Task$attempt,
+						function (x) {
+							return author$project$Main$TableMessage(
+								A2(author$project$Main$TblGotConfig, id, x));
+						},
+						author$project$Topic$getTableConfig(id)));
+			default:
+				var id = msg.a;
+				var result = msg.b;
+				if (result.$ === 'Ok') {
+					var config = result.a;
+					return _Utils_Tuple2(
+						A2(
+							author$project$Main$updateTopics,
+							model,
+							A2(
+								elm$core$List$map,
+								A2(
+									elm$core$Basics$composeL,
+									A2(author$project$Topic$addTableConfig, id, config),
+									A2(author$project$Topic$setHidden, id, false)),
+								model.topics)),
+						elm$core$Platform$Cmd$none);
+				} else {
+					return _Utils_Tuple2(author$project$Main$errorModel, elm$core$Platform$Cmd$none);
+				}
+		}
+	});
+var author$project$Topic$addSubTopics = F3(
+	function (id, subTopics, topic) {
+		if (topic.$ === 'TopicList') {
+			var list = topic.a;
+			return _Utils_eq(list.id, id) ? author$project$Topic$TopicList(
+				_Utils_update(
+					list,
+					{subTopics: subTopics})) : author$project$Topic$TopicList(
+				_Utils_update(
+					list,
+					{
+						subTopics: A2(
+							elm$core$List$map,
+							A2(author$project$Topic$addSubTopics, id, subTopics),
+							list.subTopics)
+					}));
+		} else {
+			return topic;
+		}
+	});
 var author$project$Main$update = F2(
 	function (msg, model) {
 		switch (msg.$) {
@@ -6018,14 +6079,6 @@ var author$project$Main$update = F2(
 						elm$core$Task$attempt,
 						author$project$Main$GotSubTopics(id),
 						author$project$Topic$getTopics(id)));
-			case 'GetTableConfig':
-				var id = msg.a;
-				return _Utils_Tuple2(
-					model,
-					A2(
-						elm$core$Task$attempt,
-						author$project$Main$GotTableConfig(id),
-						author$project$Topic$getTableConfig(id)));
 			case 'Show':
 				var id = msg.a;
 				return _Utils_Tuple2(
@@ -6048,6 +6101,9 @@ var author$project$Main$update = F2(
 							A2(author$project$Topic$setHidden, id, true),
 							model.topics)),
 					elm$core$Platform$Cmd$none);
+			case 'TableMessage':
+				var tblMsg = msg.a;
+				return A2(author$project$Main$handleTableMsg, tblMsg, model);
 			case 'GotMainTopics':
 				var result = msg.a;
 				if (result.$ === 'Ok') {
@@ -6058,7 +6114,7 @@ var author$project$Main$update = F2(
 				} else {
 					return _Utils_Tuple2(author$project$Main$errorModel, elm$core$Platform$Cmd$none);
 				}
-			case 'GotSubTopics':
+			default:
 				var id = msg.a;
 				var result = msg.b;
 				if (result.$ === 'Ok') {
@@ -6072,26 +6128,6 @@ var author$project$Main$update = F2(
 								A2(
 									elm$core$Basics$composeL,
 									A2(author$project$Topic$addSubTopics, id, subTopics),
-									A2(author$project$Topic$setHidden, id, false)),
-								model.topics)),
-						elm$core$Platform$Cmd$none);
-				} else {
-					return _Utils_Tuple2(author$project$Main$errorModel, elm$core$Platform$Cmd$none);
-				}
-			default:
-				var id = msg.a;
-				var result = msg.b;
-				if (result.$ === 'Ok') {
-					var config = result.a;
-					return _Utils_Tuple2(
-						A2(
-							author$project$Main$updateTopics,
-							model,
-							A2(
-								elm$core$List$map,
-								A2(
-									elm$core$Basics$composeL,
-									A2(author$project$Topic$addTableConfig, id, config),
 									A2(author$project$Topic$setHidden, id, false)),
 								model.topics)),
 						elm$core$Platform$Cmd$none);
@@ -6360,26 +6396,35 @@ var author$project$Main$configHtml = function (config) {
 		return elm$html$Html$text('');
 	}
 };
-var author$project$Main$GetTableConfig = function (a) {
-	return {$: 'GetTableConfig', a: a};
+var author$project$Main$TblGetConfig = function (a) {
+	return {$: 'TblGetConfig', a: a};
+};
+var author$project$Main$TblHide = function (a) {
+	return {$: 'TblHide', a: a};
+};
+var author$project$Main$TblShow = function (a) {
+	return {$: 'TblShow', a: a};
+};
+var author$project$Main$tableOnClick = function (table) {
+	var _n0 = table.config;
+	if (_n0.$ === 'Just') {
+		var config = _n0.a;
+		return table.isHidden ? author$project$Main$TableMessage(
+			author$project$Main$TblShow(table.id)) : author$project$Main$TableMessage(
+			author$project$Main$TblHide(table.id));
+	} else {
+		return author$project$Main$TableMessage(
+			author$project$Main$TblGetConfig(table.id));
+	}
+};
+var author$project$Main$GetSubTopics = function (a) {
+	return {$: 'GetSubTopics', a: a};
 };
 var author$project$Main$Hide = function (a) {
 	return {$: 'Hide', a: a};
 };
 var author$project$Main$Show = function (a) {
 	return {$: 'Show', a: a};
-};
-var author$project$Main$tableOnClick = function (table) {
-	var _n0 = table.config;
-	if (_n0.$ === 'Just') {
-		var config = _n0.a;
-		return table.isHidden ? author$project$Main$Show(table.id) : author$project$Main$Hide(table.id);
-	} else {
-		return author$project$Main$GetTableConfig(table.id);
-	}
-};
-var author$project$Main$GetSubTopics = function (a) {
-	return {$: 'GetSubTopics', a: a};
 };
 var author$project$Main$topicListOnClick = function (list) {
 	return (!elm$core$List$length(list.subTopics)) ? author$project$Main$GetSubTopics(list.id) : (list.isHidden ? author$project$Main$Show(list.id) : author$project$Main$Hide(list.id));

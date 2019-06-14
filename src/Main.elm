@@ -30,6 +30,7 @@ type alias Model =
     { topics : List Topic
     , title : String
     , isLoading : Bool
+    , tableAndConfig : Maybe TableAndConfig
     }
 
 
@@ -46,12 +47,21 @@ setLoading model =
 
 
 errorModel =
-    { topics = [], title = "Error!", isLoading = False }
+    { topics = [], title = "Error!", isLoading = False, tableAndConfig = Nothing }
 
 
 init : () -> ( Model, Cmd Msg )
 init _ =
-    ( { topics = [], title = "One", isLoading = False }, Task.attempt GotMainTopics (Topic.getTopics "") )
+    ( { topics = [], title = "One", isLoading = False, tableAndConfig = Nothing }
+    , Task.attempt GotMainTopics (Topic.getTopics "")
+    )
+
+
+type TableMsg
+    = TblShow String
+    | TblHide String
+    | TblGetConfig String
+    | TblGotConfig String (Result Http.Error Config)
 
 
 type Msg
@@ -59,12 +69,11 @@ type Msg
     | ShowStrings (List String)
     | GetTopics
     | GetSubTopics String
-    | GetTableConfig String
+    | TableMessage TableMsg
     | Show String
     | Hide String
     | GotMainTopics (Result Http.Error (List Topic))
     | GotSubTopics String (Result Http.Error (List Topic))
-    | GotTableConfig String (Result Http.Error TableConfig)
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -82,14 +91,14 @@ update msg model =
         GetSubTopics id ->
             ( model, Task.attempt (GotSubTopics id) (getTopics id) )
 
-        GetTableConfig id ->
-            ( model, Task.attempt (GotTableConfig id) (getTableConfig id) )
-
         Show id ->
             ( updateTopics model (List.map (setHidden id False) model.topics), Cmd.none )
 
         Hide id ->
             ( updateTopics model (List.map (setHidden id True) model.topics), Cmd.none )
+
+        TableMessage tblMsg ->
+            handleTableMsg tblMsg model
 
         GotMainTopics result ->
             case result of
@@ -107,7 +116,24 @@ update msg model =
                 Err _ ->
                     ( errorModel, Cmd.none )
 
-        GotTableConfig id result ->
+
+foo =
+    12
+
+
+handleTableMsg : TableMsg -> Model -> ( Model, Cmd Msg )
+handleTableMsg msg model =
+    case msg of
+        TblShow id ->
+            ( updateTopics model (List.map (setHidden id False) model.topics), Cmd.none )
+
+        TblHide id ->
+            ( updateTopics model (List.map (setHidden id True) model.topics), Cmd.none )
+
+        TblGetConfig id ->
+            ( model, Task.attempt (\x -> TableMessage (TblGotConfig id x)) (getTableConfig id) )
+
+        TblGotConfig id result ->
             case result of
                 Ok config ->
                     ( updateTopics model (List.map (addTableConfig id config << setHidden id False) model.topics), Cmd.none )
@@ -170,7 +196,7 @@ topicHtml topic =
                 ]
 
 
-configHtml : Maybe TableConfig -> Html.Html Msg
+configHtml : Maybe Config -> Html.Html Msg
 configHtml config =
     case config of
         Just c ->
@@ -198,20 +224,13 @@ variableHtml variable =
         []
 
 
-
---(List.map (\v -> Html.option [] [ Html.text v ]) variable.valueTexts)
-
-
+onChange : List String -> Msg
 onChange s =
     let
         _ =
             Debug.log "s" 12
     in
     ShowStrings s
-
-
-
--- How to write this signature?
 
 
 topicListOnClick list =
@@ -229,10 +248,10 @@ tableOnClick table =
     case table.config of
         Just config ->
             if table.isHidden then
-                Show table.id
+                TableMessage (TblShow table.id)
 
             else
-                Hide table.id
+                TableMessage (TblHide table.id)
 
         Nothing ->
-            GetTableConfig table.id
+            TableMessage (TblGetConfig table.id)

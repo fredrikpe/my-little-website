@@ -1,8 +1,21 @@
-module HttpUtil exposing (httpGetFromJson)
+module HttpUtil exposing (httpGetFromJson, httpPostFromJson)
 
 import Http
 import Json.Decode as Decode
+import Json.Encode as Encode
 import Task
+
+
+httpPostFromJson : String -> Encode.Value -> Decode.Decoder a -> Task.Task Http.Error a
+httpPostFromJson url body decoder =
+    Http.task
+        { url = url
+        , method = "Post"
+        , headers = []
+        , body = Http.jsonBody body
+        , resolver = Http.stringResolver (responseToResult decoder)
+        , timeout = Nothing
+        }
 
 
 httpGetFromJson : String -> Decode.Decoder a -> Task.Task Http.Error a
