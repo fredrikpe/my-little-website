@@ -1,4 +1,4 @@
-module Topic exposing (TableConfig, Topic(..), Variable, addSubTopics, addTableConfig, getTableConfig, getTopics, httpGetFromJson, listConstructor, setHidden, ssbTopicsUrl, subListDecoder, tableConfigDecoder, tableConstructor, tableDecoder, topicDecoder, topicListDecoder, variableDecoder)
+module Topic exposing (TableConfig, Topic(..), Variable, addSubTopics, addTableConfig, getTableConfig, getTopics, listConstructor, setHidden, ssbTopicsUrl, subListDecoder, tableConfigDecoder, tableConstructor, tableDecoder, topicDecoder, topicListDecoder, variableDecoder)
 
 import Http
 import HttpUtil
@@ -31,26 +31,14 @@ tableConstructor id text =
     Table { id = id, text = text, config = Nothing, isHidden = False }
 
 
-httpGetFromJson : String -> Decode.Decoder a -> Task.Task Http.Error a
-httpGetFromJson url decoder =
-    Http.task
-        { url = url
-        , method = "Get"
-        , headers = []
-        , body = Http.emptyBody
-        , resolver = Http.stringResolver (HttpUtil.responseToResult decoder)
-        , timeout = Nothing
-        }
-
-
 getTopics : String -> Task.Task Http.Error (List Topic)
 getTopics id =
-    httpGetFromJson (ssbTopicsUrl ++ id) (topicListDecoder id)
+    HttpUtil.httpGetFromJson (ssbTopicsUrl ++ id) (topicListDecoder id)
 
 
 getTableConfig : String -> Task.Task Http.Error TableConfig
 getTableConfig id =
-    httpGetFromJson (ssbTopicsUrl ++ id) tableConfigDecoder
+    HttpUtil.httpGetFromJson (ssbTopicsUrl ++ id) tableConfigDecoder
 
 
 addSubTopics : String -> List Topic -> Topic -> Topic
@@ -74,7 +62,7 @@ addTableConfig id config topic =
 
         Table table ->
             if table.id == id then
-                Table { table | config = Just config }
+                Table { table | config = Just config, isHidden = False }
 
             else
                 topic
@@ -88,14 +76,15 @@ setHidden id bool topic =
                 TopicList { list | isHidden = bool }
 
             else
-                TopicList { list | subTopics = List.map (setHidden id bool) list.subTopics }
+                TopicList
+                    { list | subTopics = List.map (setHidden id bool) list.subTopics }
 
         Table table ->
             if table.id == id then
                 Table { table | isHidden = bool }
 
             else
-                topic
+                Table { table | isHidden = True }
 
 
 topicListDecoder id =

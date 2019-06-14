@@ -5578,7 +5578,7 @@ var elm$http$Http$task = function (r) {
 		elm$http$Http$resultToTask,
 		{allowCookiesFromOtherDomains: false, body: r.body, expect: r.resolver, headers: r.headers, method: r.method, timeout: r.timeout, tracker: elm$core$Maybe$Nothing, url: r.url});
 };
-var author$project$Topic$httpGetFromJson = F2(
+var author$project$HttpUtil$httpGetFromJson = F2(
 	function (url, decoder) {
 		return elm$http$Http$task(
 			{
@@ -5683,7 +5683,7 @@ var author$project$Topic$topicListDecoder = function (id) {
 };
 var author$project$Topic$getTopics = function (id) {
 	return A2(
-		author$project$Topic$httpGetFromJson,
+		author$project$HttpUtil$httpGetFromJson,
 		_Utils_ap(author$project$Topic$ssbTopicsUrl, id),
 		author$project$Topic$topicListDecoder(id));
 };
@@ -5853,7 +5853,7 @@ var elm$core$Task$attempt = F2(
 	});
 var author$project$Main$init = function (_n0) {
 	return _Utils_Tuple2(
-		{title: 'One', topics: _List_Nil},
+		{isLoading: false, title: 'One', topics: _List_Nil},
 		A2(
 			elm$core$Task$attempt,
 			author$project$Main$GotMainTopics,
@@ -5866,6 +5866,19 @@ var author$project$Main$GotSubTopics = F2(
 var author$project$Main$GotTableConfig = F2(
 	function (a, b) {
 		return {$: 'GotTableConfig', a: a, b: b};
+	});
+var author$project$Main$errorModel = {isLoading: false, title: 'Error!', topics: _List_Nil};
+var author$project$Main$notLoading = function (model) {
+	return _Utils_update(
+		model,
+		{isLoading: false});
+};
+var author$project$Main$updateTopics = F2(
+	function (model, topics) {
+		return author$project$Main$notLoading(
+			_Utils_update(
+				model,
+				{topics: topics}));
 	});
 var author$project$Topic$addSubTopics = F3(
 	function (id, subTopics, topic) {
@@ -5906,7 +5919,8 @@ var author$project$Topic$addTableConfig = F3(
 				_Utils_update(
 					table,
 					{
-						config: elm$core$Maybe$Just(config)
+						config: elm$core$Maybe$Just(config),
+						isHidden: false
 					})) : topic;
 		}
 	});
@@ -5942,7 +5956,7 @@ var author$project$Topic$tableConfigDecoder = A3(
 		elm$json$Json$Decode$list(author$project$Topic$variableDecoder)));
 var author$project$Topic$getTableConfig = function (id) {
 	return A2(
-		author$project$Topic$httpGetFromJson,
+		author$project$HttpUtil$httpGetFromJson,
 		_Utils_ap(author$project$Topic$ssbTopicsUrl, id),
 		author$project$Topic$tableConfigDecoder);
 };
@@ -5967,7 +5981,10 @@ var author$project$Topic$setHidden = F3(
 			return _Utils_eq(table.id, id) ? author$project$Topic$Table(
 				_Utils_update(
 					table,
-					{isHidden: bool})) : topic;
+					{isHidden: bool})) : author$project$Topic$Table(
+				_Utils_update(
+					table,
+					{isHidden: true}));
 		}
 	});
 var elm$core$Platform$Cmd$batch = _Platform_batch;
@@ -5977,9 +5994,18 @@ var author$project$Main$update = F2(
 		switch (msg.$) {
 			case 'Pass':
 				return _Utils_Tuple2(model, elm$core$Platform$Cmd$none);
+			case 'ShowStrings':
+				var s = msg.a;
+				return _Utils_Tuple2(
+					_Utils_update(
+						model,
+						{
+							title: A2(elm$core$String$join, '', s)
+						}),
+					elm$core$Platform$Cmd$none);
 			case 'GetTopics':
 				return _Utils_Tuple2(
-					{title: 'two', topics: _List_Nil},
+					model,
 					A2(
 						elm$core$Task$attempt,
 						author$project$Main$GotMainTopics,
@@ -6003,36 +6029,34 @@ var author$project$Main$update = F2(
 			case 'Show':
 				var id = msg.a;
 				return _Utils_Tuple2(
-					{
-						title: 'show',
-						topics: A2(
+					A2(
+						author$project$Main$updateTopics,
+						model,
+						A2(
 							elm$core$List$map,
 							A2(author$project$Topic$setHidden, id, false),
-							model.topics)
-					},
+							model.topics)),
 					elm$core$Platform$Cmd$none);
 			case 'Hide':
 				var id = msg.a;
 				return _Utils_Tuple2(
-					{
-						title: 'hide',
-						topics: A2(
+					A2(
+						author$project$Main$updateTopics,
+						model,
+						A2(
 							elm$core$List$map,
 							A2(author$project$Topic$setHidden, id, true),
-							model.topics)
-					},
+							model.topics)),
 					elm$core$Platform$Cmd$none);
 			case 'GotMainTopics':
 				var result = msg.a;
 				if (result.$ === 'Ok') {
 					var topics = result.a;
 					return _Utils_Tuple2(
-						{title: 'three', topics: topics},
+						A2(author$project$Main$updateTopics, model, topics),
 						elm$core$Platform$Cmd$none);
 				} else {
-					return _Utils_Tuple2(
-						{title: '89', topics: _List_Nil},
-						elm$core$Platform$Cmd$none);
+					return _Utils_Tuple2(author$project$Main$errorModel, elm$core$Platform$Cmd$none);
 				}
 			case 'GotSubTopics':
 				var id = msg.a;
@@ -6040,18 +6064,19 @@ var author$project$Main$update = F2(
 				if (result.$ === 'Ok') {
 					var subTopics = result.a;
 					return _Utils_Tuple2(
-						{
-							title: 'four',
-							topics: A2(
+						A2(
+							author$project$Main$updateTopics,
+							model,
+							A2(
 								elm$core$List$map,
-								A2(author$project$Topic$addSubTopics, id, subTopics),
-								model.topics)
-						},
+								A2(
+									elm$core$Basics$composeL,
+									A2(author$project$Topic$addSubTopics, id, subTopics),
+									A2(author$project$Topic$setHidden, id, false)),
+								model.topics)),
 						elm$core$Platform$Cmd$none);
 				} else {
-					return _Utils_Tuple2(
-						{title: 'error', topics: _List_Nil},
-						elm$core$Platform$Cmd$none);
+					return _Utils_Tuple2(author$project$Main$errorModel, elm$core$Platform$Cmd$none);
 				}
 			default:
 				var id = msg.a;
@@ -6059,22 +6084,121 @@ var author$project$Main$update = F2(
 				if (result.$ === 'Ok') {
 					var config = result.a;
 					return _Utils_Tuple2(
-						{
-							title: 'four',
-							topics: A2(
+						A2(
+							author$project$Main$updateTopics,
+							model,
+							A2(
 								elm$core$List$map,
-								A2(author$project$Topic$addTableConfig, id, config),
-								model.topics)
-						},
+								A2(
+									elm$core$Basics$composeL,
+									A2(author$project$Topic$addTableConfig, id, config),
+									A2(author$project$Topic$setHidden, id, false)),
+								model.topics)),
 						elm$core$Platform$Cmd$none);
 				} else {
-					return _Utils_Tuple2(
-						{title: 'error', topics: _List_Nil},
-						elm$core$Platform$Cmd$none);
+					return _Utils_Tuple2(author$project$Main$errorModel, elm$core$Platform$Cmd$none);
 				}
 		}
 	});
 var author$project$Main$GetTopics = {$: 'GetTopics'};
+var abadi199$elm_input_extra$MultiSelect$Option = F3(
+	function (value, text, selected) {
+		return {selected: selected, text: text, value: value};
+	});
+var elm$json$Json$Decode$bool = _Json_decodeBool;
+var abadi199$elm_input_extra$MultiSelect$optionDecoder = A4(
+	elm$json$Json$Decode$map3,
+	abadi199$elm_input_extra$MultiSelect$Option,
+	A2(elm$json$Json$Decode$field, 'value', elm$json$Json$Decode$string),
+	A2(elm$json$Json$Decode$field, 'text', elm$json$Json$Decode$string),
+	A2(elm$json$Json$Decode$field, 'selected', elm$json$Json$Decode$bool));
+var elm$core$Basics$composeR = F3(
+	function (f, g, x) {
+		return g(
+			f(x));
+	});
+var elm$core$Maybe$map = F2(
+	function (f, maybe) {
+		if (maybe.$ === 'Just') {
+			var value = maybe.a;
+			return elm$core$Maybe$Just(
+				f(value));
+		} else {
+			return elm$core$Maybe$Nothing;
+		}
+	});
+var elm$json$Json$Decode$oneOf = _Json_oneOf;
+var elm$json$Json$Decode$maybe = function (decoder) {
+	return elm$json$Json$Decode$oneOf(
+		_List_fromArray(
+			[
+				A2(elm$json$Json$Decode$map, elm$core$Maybe$Just, decoder),
+				elm$json$Json$Decode$succeed(elm$core$Maybe$Nothing)
+			]));
+};
+var abadi199$elm_input_extra$MultiSelect$optionsDecoder = function () {
+	var loop = F2(
+		function (idx, xs) {
+			return A2(
+				elm$json$Json$Decode$andThen,
+				A2(
+					elm$core$Basics$composeR,
+					elm$core$Maybe$map(
+						function (x) {
+							return A2(
+								loop,
+								idx + 1,
+								A2(elm$core$List$cons, x, xs));
+						}),
+					elm$core$Maybe$withDefault(
+						elm$json$Json$Decode$succeed(xs))),
+				elm$json$Json$Decode$maybe(
+					A2(
+						elm$json$Json$Decode$field,
+						elm$core$String$fromInt(idx),
+						abadi199$elm_input_extra$MultiSelect$optionDecoder)));
+		});
+	return A2(
+		elm$json$Json$Decode$map,
+		elm$core$List$reverse,
+		A2(
+			elm$json$Json$Decode$field,
+			'options',
+			A2(loop, 0, _List_Nil)));
+}();
+var elm$core$List$filter = F2(
+	function (isGood, list) {
+		return A3(
+			elm$core$List$foldr,
+			F2(
+				function (x, xs) {
+					return isGood(x) ? A2(elm$core$List$cons, x, xs) : xs;
+				}),
+			_List_Nil,
+			list);
+	});
+var abadi199$elm_input_extra$MultiSelect$selectedOptionsDecoder = function () {
+	var filterSelected = function (options) {
+		return A2(
+			elm$core$List$map,
+			function ($) {
+				return $.value;
+			},
+			A2(
+				elm$core$List$filter,
+				function ($) {
+					return $.selected;
+				},
+				options));
+	};
+	return A2(
+		elm$json$Json$Decode$map,
+		filterSelected,
+		A2(elm$json$Json$Decode$field, 'target', abadi199$elm_input_extra$MultiSelect$optionsDecoder));
+}();
+var elm$virtual_dom$VirtualDom$Normal = function (a) {
+	return {$: 'Normal', a: a};
+};
 var elm$virtual_dom$VirtualDom$toHandlerInt = function (handler) {
 	switch (handler.$) {
 		case 'Normal':
@@ -6087,12 +6211,151 @@ var elm$virtual_dom$VirtualDom$toHandlerInt = function (handler) {
 			return 3;
 	}
 };
+var elm$virtual_dom$VirtualDom$on = _VirtualDom_on;
+var elm$html$Html$Events$on = F2(
+	function (event, decoder) {
+		return A2(
+			elm$virtual_dom$VirtualDom$on,
+			event,
+			elm$virtual_dom$VirtualDom$Normal(decoder));
+	});
+var abadi199$elm_input_extra$MultiSelect$onChange = function (tagger) {
+	return A2(
+		elm$html$Html$Events$on,
+		'change',
+		A2(elm$json$Json$Decode$map, tagger, abadi199$elm_input_extra$MultiSelect$selectedOptionsDecoder));
+};
+var elm$core$Basics$not = _Basics_not;
+var elm$core$List$any = F2(
+	function (isOkay, list) {
+		any:
+		while (true) {
+			if (!list.b) {
+				return false;
+			} else {
+				var x = list.a;
+				var xs = list.b;
+				if (isOkay(x)) {
+					return true;
+				} else {
+					var $temp$isOkay = isOkay,
+						$temp$list = xs;
+					isOkay = $temp$isOkay;
+					list = $temp$list;
+					continue any;
+				}
+			}
+		}
+	});
+var elm$html$Html$option = _VirtualDom_node('option');
+var elm$html$Html$select = _VirtualDom_node('select');
 var elm$virtual_dom$VirtualDom$text = _VirtualDom_text;
 var elm$html$Html$text = elm$virtual_dom$VirtualDom$text;
+var elm$json$Json$Encode$bool = _Json_wrap;
+var elm$html$Html$Attributes$boolProperty = F2(
+	function (key, bool) {
+		return A2(
+			_VirtualDom_property,
+			key,
+			elm$json$Json$Encode$bool(bool));
+	});
+var elm$html$Html$Attributes$disabled = elm$html$Html$Attributes$boolProperty('disabled');
+var elm$html$Html$Attributes$multiple = elm$html$Html$Attributes$boolProperty('multiple');
+var elm$html$Html$Attributes$selected = elm$html$Html$Attributes$boolProperty('selected');
+var elm$json$Json$Encode$string = _Json_wrap;
+var elm$html$Html$Attributes$stringProperty = F2(
+	function (key, string) {
+		return A2(
+			_VirtualDom_property,
+			key,
+			elm$json$Json$Encode$string(string));
+	});
+var elm$html$Html$Attributes$value = elm$html$Html$Attributes$stringProperty('value');
+var abadi199$elm_input_extra$MultiSelect$multiSelect = F3(
+	function (options, attributes, currentValue) {
+		var isSelected = function (value) {
+			return A2(
+				elm$core$List$any,
+				elm$core$Basics$eq(value),
+				currentValue);
+		};
+		var toOption = function (_n0) {
+			var value = _n0.value;
+			var text = _n0.text;
+			var enabled = _n0.enabled;
+			return A2(
+				elm$html$Html$option,
+				_List_fromArray(
+					[
+						elm$html$Html$Attributes$value(value),
+						elm$html$Html$Attributes$selected(
+						isSelected(value)),
+						elm$html$Html$Attributes$disabled(!enabled)
+					]),
+				_List_fromArray(
+					[
+						elm$html$Html$text(text)
+					]));
+		};
+		return A2(
+			elm$html$Html$select,
+			_Utils_ap(
+				attributes,
+				_List_fromArray(
+					[
+						abadi199$elm_input_extra$MultiSelect$onChange(options.onChange),
+						elm$html$Html$Attributes$multiple(true)
+					])),
+			A2(elm$core$List$map, toOption, options.items));
+	});
+var abadi199$elm_input_extra$MultiSelect$defaultOptions = function (onChangeHandler) {
+	return {items: _List_Nil, onChange: onChangeHandler};
+};
+var author$project$Main$ShowStrings = function (a) {
+	return {$: 'ShowStrings', a: a};
+};
+var elm$core$Debug$log = _Debug_log;
+var author$project$Main$onChange = function (s) {
+	var _n0 = A2(elm$core$Debug$log, 's', 12);
+	return author$project$Main$ShowStrings(s);
+};
+var author$project$Main$valueSelectOptions = function (variable) {
+	var defaultOptions = abadi199$elm_input_extra$MultiSelect$defaultOptions(author$project$Main$onChange);
+	return _Utils_update(
+		defaultOptions,
+		{
+			items: A2(
+				elm$core$List$map,
+				function (v) {
+					return {enabled: true, text: v, value: v};
+				},
+				variable.valueTexts)
+		});
+};
+var author$project$Main$variableHtml = function (variable) {
+	return A3(
+		abadi199$elm_input_extra$MultiSelect$multiSelect,
+		author$project$Main$valueSelectOptions(variable),
+		_List_Nil,
+		_List_Nil);
+};
+var elm$html$Html$div = _VirtualDom_node('div');
+var elm$html$Html$Attributes$class = elm$html$Html$Attributes$stringProperty('className');
 var author$project$Main$configHtml = function (config) {
 	if (config.$ === 'Just') {
 		var c = config.a;
-		return elm$html$Html$text(c.title);
+		return A2(
+			elm$html$Html$div,
+			_List_fromArray(
+				[
+					elm$html$Html$Attributes$class('view__config_div')
+				]),
+			A2(
+				elm$core$List$map,
+				function (v) {
+					return author$project$Main$variableHtml(v);
+				},
+				c.variables));
 	} else {
 		return elm$html$Html$text('');
 	}
@@ -6122,20 +6385,8 @@ var author$project$Main$topicListOnClick = function (list) {
 	return (!elm$core$List$length(list.subTopics)) ? author$project$Main$GetSubTopics(list.id) : (list.isHidden ? author$project$Main$Show(list.id) : author$project$Main$Hide(list.id));
 };
 var elm$html$Html$button = _VirtualDom_node('button');
-var elm$html$Html$div = _VirtualDom_node('div');
 var elm$html$Html$li = _VirtualDom_node('li');
 var elm$html$Html$ul = _VirtualDom_node('ul');
-var elm$virtual_dom$VirtualDom$Normal = function (a) {
-	return {$: 'Normal', a: a};
-};
-var elm$virtual_dom$VirtualDom$on = _VirtualDom_on;
-var elm$html$Html$Events$on = F2(
-	function (event, decoder) {
-		return A2(
-			elm$virtual_dom$VirtualDom$on,
-			event,
-			elm$virtual_dom$VirtualDom$Normal(decoder));
-	});
 var elm$html$Html$Events$onClick = function (msg) {
 	return A2(
 		elm$html$Html$Events$on,
@@ -6184,13 +6435,7 @@ var author$project$Main$topicHtml = function (topic) {
 						[
 							elm$html$Html$text(table.text)
 						])),
-					A2(
-					elm$html$Html$div,
-					_List_Nil,
-					table.isHidden ? _List_Nil : _List_fromArray(
-						[
-							author$project$Main$configHtml(table.config)
-						]))
+					table.isHidden ? elm$html$Html$text('') : author$project$Main$configHtml(table.config)
 				]));
 	}
 };
@@ -6239,7 +6484,7 @@ var author$project$Main$view = function (model) {
 					[
 						elm$html$Html$text('SSB Datasets')
 					])),
-				author$project$Main$viewTopics(model)
+				model.isLoading ? elm$html$Html$text('Loading...') : author$project$Main$viewTopics(model)
 			]));
 };
 var elm$browser$Browser$External = function (a) {

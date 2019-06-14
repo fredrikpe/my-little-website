@@ -10,6 +10,8 @@ import Html.Attributes
 import Html.Events
 import Http
 import HttpUtil
+import Json.Decode as Decode
+import MultiSelect
 import Task
 import Topic exposing (..)
 
@@ -27,16 +29,34 @@ main =
 type alias Model =
     { topics : List Topic
     , title : String
+    , isLoading : Bool
     }
+
+
+notLoading model =
+    { model | isLoading = False }
+
+
+updateTopics model topics =
+    notLoading { model | topics = topics }
+
+
+setLoading model =
+    { model | isLoading = True }
+
+
+errorModel =
+    { topics = [], title = "Error!", isLoading = False }
 
 
 init : () -> ( Model, Cmd Msg )
 init _ =
-    ( { topics = [], title = "One" }, Task.attempt GotMainTopics (Topic.getTopics "") )
+    ( { topics = [], title = "One", isLoading = False }, Task.attempt GotMainTopics (Topic.getTopics "") )
 
 
 type Msg
     = Pass
+    | ShowStrings (List String)
     | GetTopics
     | GetSubTopics String
     | GetTableConfig String
@@ -53,8 +73,11 @@ update msg model =
         Pass ->
             ( model, Cmd.none )
 
+        ShowStrings s ->
+            ( { model | title = String.join "" s }, Cmd.none )
+
         GetTopics ->
-            ( { topics = [], title = "two" }, Task.attempt GotMainTopics (getTopics "") )
+            ( model, Task.attempt GotMainTopics (getTopics "") )
 
         GetSubTopics id ->
             ( model, Task.attempt (GotSubTopics id) (getTopics id) )
@@ -63,41 +86,45 @@ update msg model =
             ( model, Task.attempt (GotTableConfig id) (getTableConfig id) )
 
         Show id ->
-            ( { topics = List.map (setHidden id False) model.topics, title = "show" }, Cmd.none )
+            ( updateTopics model (List.map (setHidden id False) model.topics), Cmd.none )
 
         Hide id ->
-            ( { topics = List.map (setHidden id True) model.topics, title = "hide" }, Cmd.none )
+            ( updateTopics model (List.map (setHidden id True) model.topics), Cmd.none )
 
         GotMainTopics result ->
             case result of
                 Ok topics ->
-                    ( { topics = topics, title = "three" }, Cmd.none )
+                    ( updateTopics model topics, Cmd.none )
 
                 Err _ ->
-                    ( { topics = [], title = "89" }, Cmd.none )
+                    ( errorModel, Cmd.none )
 
         GotSubTopics id result ->
             case result of
                 Ok subTopics ->
-                    ( { topics = List.map (addSubTopics id subTopics) model.topics, title = "four" }, Cmd.none )
+                    ( updateTopics model (List.map (addSubTopics id subTopics << setHidden id False) model.topics), Cmd.none )
 
                 Err _ ->
-                    ( { topics = [], title = "error" }, Cmd.none )
+                    ( errorModel, Cmd.none )
 
         GotTableConfig id result ->
             case result of
                 Ok config ->
-                    ( { topics = List.map (addTableConfig id config) model.topics, title = "four" }, Cmd.none )
+                    ( updateTopics model (List.map (addTableConfig id config << setHidden id False) model.topics), Cmd.none )
 
                 Err _ ->
-                    ( { topics = [], title = "error" }, Cmd.none )
+                    ( errorModel, Cmd.none )
 
 
 view : Model -> Html.Html Msg
 view model =
     Html.div []
         [ Html.h2 [] [ Html.text "SSB Datasets" ]
-        , viewTopics model
+        , if model.isLoading then
+            Html.text "Loading..."
+
+          else
+            viewTopics model
         ]
 
 
@@ -135,13 +162,11 @@ topicHtml topic =
         Table table ->
             Html.li []
                 [ Html.button [ Html.Events.onClick (tableOnClick table) ] [ Html.text table.text ]
-                , Html.div []
-                    (if table.isHidden then
-                        []
+                , if table.isHidden then
+                    Html.text ""
 
-                     else
-                        [ configHtml table.config ]
-                    )
+                  else
+                    configHtml table.config
                 ]
 
 
@@ -149,10 +174,40 @@ configHtml : Maybe TableConfig -> Html.Html Msg
 configHtml config =
     case config of
         Just c ->
-            Html.text c.title
+            Html.div [ Html.Attributes.class "view__config_div" ] (List.map (\v -> variableHtml v) c.variables)
 
         Nothing ->
             Html.text ""
+
+
+valueSelectOptions : Variable -> MultiSelect.Options Msg
+valueSelectOptions variable =
+    let
+        defaultOptions =
+            MultiSelect.defaultOptions onChange
+    in
+    { defaultOptions
+        | items =
+            List.map (\v -> { value = v, text = v, enabled = True }) variable.valueTexts
+    }
+
+
+variableHtml variable =
+    MultiSelect.multiSelect (valueSelectOptions variable)
+        []
+        []
+
+
+
+--(List.map (\v -> Html.option [] [ Html.text v ]) variable.valueTexts)
+
+
+onChange s =
+    let
+        _ =
+            Debug.log "s" 12
+    in
+    ShowStrings s
 
 
 
