@@ -200,7 +200,8 @@ configHtml : Maybe Config -> Html.Html Msg
 configHtml config =
     case config of
         Just c ->
-            Html.div [ Html.Attributes.class "view__config_div" ] (List.map (\v -> variableHtml v) c.variables)
+            Html.div [ Html.Attributes.class "view__config_div" ]
+                (List.map (\v -> variableHtml v) c.variables)
 
         Nothing ->
             Html.text ""
