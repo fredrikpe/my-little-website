@@ -2,7 +2,7 @@
 --https://discourse.elm-lang.org/t/using-task-to-send-http-requests/2696/5
 
 
-module Main exposing (Model, Msg(..), init, main, tableOnClick, topicHtml, topicListOnClick, update, view, viewTopics)
+module Main exposing (DatasetMsg(..), Model, Msg(..), configHtml, datasetOnClick, errorModel, handleDatasetMsg, hide, init, main, notLoading, onQueryChange, querySelectOptions, setLoading, setQuery, show, topicHtml, topicListOnClick, update, updateTopic, updateTopics, variableHtml, view, viewTopics)
 
 import Browser
 import Html
@@ -14,6 +14,7 @@ import Json.Decode as Decode
 import MultiSelect
 import Task
 import Topic exposing (..)
+import Util
 
 
 main : Program () Model Msg
@@ -28,9 +29,9 @@ main =
 
 type alias Model =
     { topics : List Topic
-    , title : String
+    , errorMsg : Maybe String
     , isLoading : Bool
-    , tableAndConfig : Maybe TableAndConfig
+    , query : Maybe DatasetQuery
     }
 
 
@@ -38,30 +39,47 @@ notLoading model =
     { model | isLoading = False }
 
 
-updateTopics model topics =
+updateTopics topics model =
     notLoading { model | topics = topics }
+
+
+updateTopic id f model =
+    updateTopics (List.map (f id) model.topics) model
 
 
 setLoading model =
     { model | isLoading = True }
 
 
-errorModel =
-    { topics = [], title = "Error!", isLoading = False, tableAndConfig = Nothing }
+errorModel errorMsg =
+    { topics = [], errorMsg = Just errorMsg, isLoading = False, query = Nothing }
+
+
+setQuery query model =
+    { model | query = query }
+
+
+show id =
+    updateTopic id (setHidden False)
+
+
+hide id =
+    updateTopic id (setHidden True)
 
 
 init : () -> ( Model, Cmd Msg )
 init _ =
-    ( { topics = [], title = "One", isLoading = False, tableAndConfig = Nothing }
+    ( { topics = [], errorMsg = Nothing, isLoading = True, query = Nothing }
     , Task.attempt GotMainTopics (Topic.getTopics "")
     )
 
 
-type TableMsg
-    = TblShow String
-    | TblHide String
-    | TblGetConfig String
-    | TblGotConfig String (Result Http.Error Config)
+type DatasetMsg
+    = DShow String Config
+    | DHide String
+    | DGetConfig String
+    | DGotConfig String (Result Http.Error Config)
+    | DSetQueryVariable Variable
 
 
 type Msg
@@ -69,7 +87,7 @@ type Msg
     | ShowStrings (List String)
     | GetTopics
     | GetSubTopics String
-    | TableMessage TableMsg
+    | DatasetMessage DatasetMsg
     | Show String
     | Hide String
     | GotMainTopics (Result Http.Error (List Topic))
@@ -83,63 +101,90 @@ update msg model =
             ( model, Cmd.none )
 
         ShowStrings s ->
-            ( { model | title = String.join "" s }, Cmd.none )
+            ( { model | errorMsg = Just (String.join "" s) }, Cmd.none )
 
         GetTopics ->
-            ( model, Task.attempt GotMainTopics (getTopics "") )
+            ( setLoading model, Task.attempt GotMainTopics (getTopics "") )
 
         GetSubTopics id ->
             ( model, Task.attempt (GotSubTopics id) (getTopics id) )
 
         Show id ->
-            ( updateTopics model (List.map (setHidden id False) model.topics), Cmd.none )
+            ( show id model, Cmd.none )
 
         Hide id ->
-            ( updateTopics model (List.map (setHidden id True) model.topics), Cmd.none )
+            ( hide id model, Cmd.none )
 
-        TableMessage tblMsg ->
-            handleTableMsg tblMsg model
+        DatasetMessage dMsg ->
+            handleDatasetMsg dMsg model
 
         GotMainTopics result ->
             case result of
                 Ok topics ->
-                    ( updateTopics model topics, Cmd.none )
+                    ( updateTopics topics model, Cmd.none )
 
-                Err _ ->
-                    ( errorModel, Cmd.none )
+                Err e ->
+                    ( errorModel (Debug.toString e), Cmd.none )
 
         GotSubTopics id result ->
             case result of
                 Ok subTopics ->
-                    ( updateTopics model (List.map (addSubTopics id subTopics << setHidden id False) model.topics), Cmd.none )
+                    ( updateTopic id
+                        (\x y ->
+                            addSubTopics subTopics x (setHidden False x y)
+                        )
+                        model
+                    , Cmd.none
+                    )
 
-                Err _ ->
-                    ( errorModel, Cmd.none )
+                Err e ->
+                    ( errorModel (Debug.toString e), Cmd.none )
 
 
-foo =
-    12
-
-
-handleTableMsg : TableMsg -> Model -> ( Model, Cmd Msg )
-handleTableMsg msg model =
+handleDatasetMsg : DatasetMsg -> Model -> ( Model, Cmd Msg )
+handleDatasetMsg msg model =
     case msg of
-        TblShow id ->
-            ( updateTopics model (List.map (setHidden id False) model.topics), Cmd.none )
+        DShow id config ->
+            ( (setQuery (Just (blankQuery id config)) << show id) model, Cmd.none )
 
-        TblHide id ->
-            ( updateTopics model (List.map (setHidden id True) model.topics), Cmd.none )
+        DHide id ->
+            ( (setQuery Nothing << hide id) model, Cmd.none )
 
-        TblGetConfig id ->
-            ( model, Task.attempt (\x -> TableMessage (TblGotConfig id x)) (getTableConfig id) )
+        DSetQueryVariable variable ->
+            case model.query of
+                Just q ->
+                    let
+                        vs =
+                            Util.replaceIf
+                                (\v ->
+                                    v.code == variable.code
+                                )
+                                variable
+                                q.variables
+                    in
+                    ( setQuery (Just { q | variables = vs }) model, Cmd.none )
 
-        TblGotConfig id result ->
+                Nothing ->
+                    ( errorModel "Query was Nothing when it shouldn't have been!", Cmd.none )
+
+        DGetConfig id ->
+            ( model, Task.attempt (\x -> DatasetMessage (DGotConfig id x)) (getDatasetConfig id) )
+
+        DGotConfig id result ->
             case result of
                 Ok config ->
-                    ( updateTopics model (List.map (addTableConfig id config << setHidden id False) model.topics), Cmd.none )
+                    ( (setQuery (Just (blankQuery id config))
+                        << updateTopic id
+                            (\x y ->
+                                addDatasetConfig config x (setHidden False x y)
+                            )
+                      )
+                        model
+                    , Cmd.none
+                    )
 
-                Err _ ->
-                    ( errorModel, Cmd.none )
+                Err e ->
+                    ( errorModel (Debug.toString e), Cmd.none )
 
 
 view : Model -> Html.Html Msg
@@ -156,18 +201,13 @@ view model =
 
 viewTopics : Model -> Html.Html Msg
 viewTopics model =
-    case List.length model.topics of
-        0 ->
-            Html.text "Loading..."
-
-        _ ->
-            Html.div []
-                [ Html.text model.title
-                , Html.button
-                    [ Html.Events.onClick GetTopics, Html.Attributes.style "display" "block" ]
-                    [ Html.text "Get Topics!" ]
-                , Html.ul [] (List.map topicHtml model.topics)
-                ]
+    Html.div []
+        [ Html.text (Maybe.withDefault "" model.errorMsg)
+        , Html.button
+            [ Html.Events.onClick GetTopics, Html.Attributes.style "display" "block" ]
+            [ Html.text "Get Topics!" ]
+        , Html.ul [] (List.map topicHtml model.topics)
+        ]
 
 
 topicHtml : Topic -> Html.Html Msg
@@ -185,14 +225,16 @@ topicHtml topic =
                     )
                 ]
 
-        Table table ->
+        Dataset dataset ->
             Html.li []
-                [ Html.button [ Html.Events.onClick (tableOnClick table) ] [ Html.text table.text ]
-                , if table.isHidden then
+                [ Html.button
+                    [ Html.Events.onClick (datasetOnClick dataset) ]
+                    [ Html.text dataset.text ]
+                , if dataset.isHidden then
                     Html.text ""
 
                   else
-                    configHtml table.config
+                    configHtml dataset.config
                 ]
 
 
@@ -207,31 +249,36 @@ configHtml config =
             Html.text ""
 
 
-valueSelectOptions : Variable -> MultiSelect.Options Msg
-valueSelectOptions variable =
+querySelectOptions : Variable -> MultiSelect.Options Msg
+querySelectOptions variable =
     let
         defaultOptions =
-            MultiSelect.defaultOptions onChange
+            MultiSelect.defaultOptions (onQueryChange variable)
     in
     { defaultOptions
         | items =
-            List.map (\v -> { value = v, text = v, enabled = True }) variable.valueTexts
+            List.map
+                (\v ->
+                    { value = Tuple.first v, text = Tuple.second v, enabled = True }
+                )
+                variable.values
     }
 
 
 variableHtml variable =
-    MultiSelect.multiSelect (valueSelectOptions variable)
+    MultiSelect.multiSelect (querySelectOptions variable)
         []
         []
 
 
-onChange : List String -> Msg
-onChange s =
-    let
-        _ =
-            Debug.log "s" 12
-    in
-    ShowStrings s
+onQueryChange : Variable -> List String -> Msg
+onQueryChange variable s =
+    DatasetMessage
+        (DSetQueryVariable
+            { variable
+                | values = List.map2 Tuple.pair s (List.repeat (List.length s) "")
+            }
+        )
 
 
 topicListOnClick list =
@@ -245,14 +292,14 @@ topicListOnClick list =
         Hide list.id
 
 
-tableOnClick table =
-    case table.config of
+datasetOnClick dataset =
+    case dataset.config of
         Just config ->
-            if table.isHidden then
-                TableMessage (TblShow table.id)
+            if dataset.isHidden then
+                DatasetMessage (DShow dataset.id config)
 
             else
-                TableMessage (TblHide table.id)
+                DatasetMessage (DHide dataset.id)
 
         Nothing ->
-            TableMessage (TblGetConfig table.id)
+            DatasetMessage (DGetConfig dataset.id)

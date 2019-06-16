@@ -5592,38 +5592,12 @@ var author$project$HttpUtil$httpGetFromJson = F2(
 			});
 	});
 var author$project$Topic$ssbTopicsUrl = 'http://data.ssb.no/api/v0/en/table/';
-var author$project$Topic$TopicList = function (a) {
-	return {$: 'TopicList', a: a};
+var author$project$Topic$Dataset = function (a) {
+	return {$: 'Dataset', a: a};
 };
-var author$project$Topic$listConstructor = F3(
-	function (id, text, subTopics) {
-		return author$project$Topic$TopicList(
-			{id: id, isHidden: false, subTopics: subTopics, text: text});
-	});
-var elm$json$Json$Decode$field = _Json_decodeField;
-var elm$json$Json$Decode$map = _Json_map1;
-var elm$json$Json$Decode$map3 = _Json_map3;
-var elm$json$Json$Decode$string = _Json_decodeString;
-var elm$json$Json$Decode$succeed = _Json_succeed;
-var author$project$Topic$subListDecoder = function (id) {
-	return A4(
-		elm$json$Json$Decode$map3,
-		author$project$Topic$listConstructor,
-		A2(
-			elm$json$Json$Decode$map,
-			function (s) {
-				return id + ('/' + s);
-			},
-			A2(elm$json$Json$Decode$field, 'id', elm$json$Json$Decode$string)),
-		A2(elm$json$Json$Decode$field, 'text', elm$json$Json$Decode$string),
-		elm$json$Json$Decode$succeed(_List_Nil));
-};
-var author$project$Topic$Table = function (a) {
-	return {$: 'Table', a: a};
-};
-var author$project$Topic$tableConstructor = F2(
+var author$project$Topic$datasetConstructor = F2(
 	function (id, text) {
-		return author$project$Topic$Table(
+		return author$project$Topic$Dataset(
 			{config: elm$core$Maybe$Nothing, id: id, isHidden: false, text: text});
 	});
 var elm$core$List$head = function (list) {
@@ -5644,10 +5618,13 @@ var elm$core$Maybe$withDefault = F2(
 			return _default;
 		}
 	});
+var elm$json$Json$Decode$field = _Json_decodeField;
+var elm$json$Json$Decode$map = _Json_map1;
 var elm$json$Json$Decode$map2 = _Json_map2;
-var author$project$Topic$tableDecoder = A3(
+var elm$json$Json$Decode$string = _Json_decodeString;
+var author$project$Topic$datasetDecoder = A3(
 	elm$json$Json$Decode$map2,
-	author$project$Topic$tableConstructor,
+	author$project$Topic$datasetConstructor,
 	A2(
 		elm$json$Json$Decode$map,
 		function (s) {
@@ -5659,6 +5636,29 @@ var author$project$Topic$tableDecoder = A3(
 		},
 		A2(elm$json$Json$Decode$field, 'text', elm$json$Json$Decode$string)),
 	A2(elm$json$Json$Decode$field, 'text', elm$json$Json$Decode$string));
+var author$project$Topic$TopicList = function (a) {
+	return {$: 'TopicList', a: a};
+};
+var author$project$Topic$listConstructor = F3(
+	function (id, text, subTopics) {
+		return author$project$Topic$TopicList(
+			{id: id, isHidden: false, subTopics: subTopics, text: text});
+	});
+var elm$json$Json$Decode$map3 = _Json_map3;
+var elm$json$Json$Decode$succeed = _Json_succeed;
+var author$project$Topic$subListDecoder = function (id) {
+	return A4(
+		elm$json$Json$Decode$map3,
+		author$project$Topic$listConstructor,
+		A2(
+			elm$json$Json$Decode$map,
+			function (s) {
+				return id + ('/' + s);
+			},
+			A2(elm$json$Json$Decode$field, 'id', elm$json$Json$Decode$string)),
+		A2(elm$json$Json$Decode$field, 'text', elm$json$Json$Decode$string),
+		elm$json$Json$Decode$succeed(_List_Nil));
+};
 var elm$json$Json$Decode$andThen = _Json_andThen;
 var elm$json$Json$Decode$fail = _Json_fail;
 var author$project$Topic$topicDecoder = function (id) {
@@ -5669,7 +5669,7 @@ var author$project$Topic$topicDecoder = function (id) {
 				case 'l':
 					return author$project$Topic$subListDecoder(id);
 				case 't':
-					return author$project$Topic$tableDecoder;
+					return author$project$Topic$datasetDecoder;
 				default:
 					return elm$json$Json$Decode$fail('Couldn\'t decode error');
 			}
@@ -5853,7 +5853,7 @@ var elm$core$Task$attempt = F2(
 	});
 var author$project$Main$init = function (_n0) {
 	return _Utils_Tuple2(
-		{isLoading: false, tableAndConfig: elm$core$Maybe$Nothing, title: 'One', topics: _List_Nil},
+		{errorMsg: elm$core$Maybe$Nothing, isLoading: true, query: elm$core$Maybe$Nothing, topics: _List_Nil},
 		A2(
 			elm$core$Task$attempt,
 			author$project$Main$GotMainTopics,
@@ -5863,88 +5863,45 @@ var author$project$Main$GotSubTopics = F2(
 	function (a, b) {
 		return {$: 'GotSubTopics', a: a, b: b};
 	});
-var author$project$Main$errorModel = {isLoading: false, tableAndConfig: elm$core$Maybe$Nothing, title: 'Error!', topics: _List_Nil};
-var author$project$Main$TableMessage = function (a) {
-	return {$: 'TableMessage', a: a};
+var author$project$Main$errorModel = function (errorMsg) {
+	return {
+		errorMsg: elm$core$Maybe$Just(errorMsg),
+		isLoading: false,
+		query: elm$core$Maybe$Nothing,
+		topics: _List_Nil
+	};
 };
-var author$project$Main$TblGotConfig = F2(
+var author$project$Main$DGotConfig = F2(
 	function (a, b) {
-		return {$: 'TblGotConfig', a: a, b: b};
+		return {$: 'DGotConfig', a: a, b: b};
 	});
+var author$project$Main$DatasetMessage = function (a) {
+	return {$: 'DatasetMessage', a: a};
+};
 var author$project$Main$notLoading = function (model) {
 	return _Utils_update(
 		model,
 		{isLoading: false});
 };
 var author$project$Main$updateTopics = F2(
-	function (model, topics) {
+	function (topics, model) {
 		return author$project$Main$notLoading(
 			_Utils_update(
 				model,
 				{topics: topics}));
 	});
-var author$project$Topic$addTableConfig = F3(
-	function (id, config, topic) {
-		if (topic.$ === 'TopicList') {
-			var list = topic.a;
-			return author$project$Topic$TopicList(
-				_Utils_update(
-					list,
-					{
-						subTopics: A2(
-							elm$core$List$map,
-							A2(author$project$Topic$addTableConfig, id, config),
-							list.subTopics)
-					}));
-		} else {
-			var table = topic.a;
-			return _Utils_eq(table.id, id) ? author$project$Topic$Table(
-				_Utils_update(
-					table,
-					{
-						config: elm$core$Maybe$Just(config),
-						isHidden: false
-					})) : topic;
-		}
+var author$project$Main$updateTopic = F3(
+	function (id, f, model) {
+		return A2(
+			author$project$Main$updateTopics,
+			A2(
+				elm$core$List$map,
+				f(id),
+				model.topics),
+			model);
 	});
-var author$project$Topic$Config = F2(
-	function (title, variables) {
-		return {title: title, variables: variables};
-	});
-var author$project$Topic$Variable = F4(
-	function (code, text, values, valueTexts) {
-		return {code: code, text: text, valueTexts: valueTexts, values: values};
-	});
-var elm$json$Json$Decode$map4 = _Json_map4;
-var author$project$Topic$variableDecoder = A5(
-	elm$json$Json$Decode$map4,
-	author$project$Topic$Variable,
-	A2(elm$json$Json$Decode$field, 'code', elm$json$Json$Decode$string),
-	A2(elm$json$Json$Decode$field, 'text', elm$json$Json$Decode$string),
-	A2(
-		elm$json$Json$Decode$field,
-		'values',
-		elm$json$Json$Decode$list(elm$json$Json$Decode$string)),
-	A2(
-		elm$json$Json$Decode$field,
-		'valueTexts',
-		elm$json$Json$Decode$list(elm$json$Json$Decode$string)));
-var author$project$Topic$tableConfigDecoder = A3(
-	elm$json$Json$Decode$map2,
-	author$project$Topic$Config,
-	A2(elm$json$Json$Decode$field, 'title', elm$json$Json$Decode$string),
-	A2(
-		elm$json$Json$Decode$field,
-		'variables',
-		elm$json$Json$Decode$list(author$project$Topic$variableDecoder)));
-var author$project$Topic$getTableConfig = function (id) {
-	return A2(
-		author$project$HttpUtil$httpGetFromJson,
-		_Utils_ap(author$project$Topic$ssbTopicsUrl, id),
-		author$project$Topic$tableConfigDecoder);
-};
 var author$project$Topic$setHidden = F3(
-	function (id, bool, topic) {
+	function (bool, id, topic) {
 		if (topic.$ === 'TopicList') {
 			var list = topic.a;
 			return _Utils_eq(list.id, id) ? author$project$Topic$TopicList(
@@ -5956,58 +5913,189 @@ var author$project$Topic$setHidden = F3(
 					{
 						subTopics: A2(
 							elm$core$List$map,
-							A2(author$project$Topic$setHidden, id, bool),
+							A2(author$project$Topic$setHidden, bool, id),
 							list.subTopics)
 					}));
 		} else {
-			var table = topic.a;
-			return _Utils_eq(table.id, id) ? author$project$Topic$Table(
+			var dataset = topic.a;
+			return _Utils_eq(dataset.id, id) ? author$project$Topic$Dataset(
 				_Utils_update(
-					table,
-					{isHidden: bool})) : author$project$Topic$Table(
+					dataset,
+					{isHidden: bool})) : author$project$Topic$Dataset(
 				_Utils_update(
-					table,
+					dataset,
 					{isHidden: true}));
 		}
 	});
+var author$project$Main$hide = function (id) {
+	return A2(
+		author$project$Main$updateTopic,
+		id,
+		author$project$Topic$setHidden(true));
+};
+var author$project$Main$setQuery = F2(
+	function (query, model) {
+		return _Utils_update(
+			model,
+			{query: query});
+	});
+var author$project$Main$show = function (id) {
+	return A2(
+		author$project$Main$updateTopic,
+		id,
+		author$project$Topic$setHidden(false));
+};
+var author$project$Topic$addDatasetConfig = F3(
+	function (config, id, topic) {
+		if (topic.$ === 'TopicList') {
+			var list = topic.a;
+			return author$project$Topic$TopicList(
+				_Utils_update(
+					list,
+					{
+						subTopics: A2(
+							elm$core$List$map,
+							A2(author$project$Topic$addDatasetConfig, config, id),
+							list.subTopics)
+					}));
+		} else {
+			var dataset = topic.a;
+			return _Utils_eq(dataset.id, id) ? author$project$Topic$Dataset(
+				_Utils_update(
+					dataset,
+					{
+						config: elm$core$Maybe$Just(config),
+						isHidden: false
+					})) : topic;
+		}
+	});
+var author$project$Topic$blankQuery = F2(
+	function (id, config) {
+		return {
+			id: id,
+			variables: A2(
+				elm$core$List$map,
+				function (v) {
+					return _Utils_update(
+						v,
+						{values: _List_Nil});
+				},
+				config.variables)
+		};
+	});
+var author$project$Topic$Config = F2(
+	function (title, variables) {
+		return {title: title, variables: variables};
+	});
+var author$project$Topic$Variable = F3(
+	function (code, text, values) {
+		return {code: code, text: text, values: values};
+	});
+var elm$core$Tuple$pair = F2(
+	function (a, b) {
+		return _Utils_Tuple2(a, b);
+	});
+var author$project$Topic$variableDecoder = A4(
+	elm$json$Json$Decode$map3,
+	author$project$Topic$Variable,
+	A2(elm$json$Json$Decode$field, 'code', elm$json$Json$Decode$string),
+	A2(elm$json$Json$Decode$field, 'text', elm$json$Json$Decode$string),
+	A3(
+		elm$json$Json$Decode$map2,
+		elm$core$List$map2(elm$core$Tuple$pair),
+		A2(
+			elm$json$Json$Decode$field,
+			'values',
+			elm$json$Json$Decode$list(elm$json$Json$Decode$string)),
+		A2(
+			elm$json$Json$Decode$field,
+			'valueTexts',
+			elm$json$Json$Decode$list(elm$json$Json$Decode$string))));
+var author$project$Topic$datasetConfigDecoder = A3(
+	elm$json$Json$Decode$map2,
+	author$project$Topic$Config,
+	A2(elm$json$Json$Decode$field, 'title', elm$json$Json$Decode$string),
+	A2(
+		elm$json$Json$Decode$field,
+		'variables',
+		elm$json$Json$Decode$list(author$project$Topic$variableDecoder)));
+var author$project$Topic$getDatasetConfig = function (id) {
+	return A2(
+		author$project$HttpUtil$httpGetFromJson,
+		_Utils_ap(author$project$Topic$ssbTopicsUrl, id),
+		author$project$Topic$datasetConfigDecoder);
+};
+var author$project$Util$replaceIf = F3(
+	function (predicate, value, list) {
+		return A2(
+			elm$core$List$map,
+			function (x) {
+				return predicate(x) ? value : x;
+			},
+			list);
+	});
+var elm$core$Debug$toString = _Debug_toString;
 var elm$core$Platform$Cmd$batch = _Platform_batch;
 var elm$core$Platform$Cmd$none = elm$core$Platform$Cmd$batch(_List_Nil);
-var author$project$Main$handleTableMsg = F2(
+var author$project$Main$handleDatasetMsg = F2(
 	function (msg, model) {
 		switch (msg.$) {
-			case 'TblShow':
+			case 'DShow':
+				var id = msg.a;
+				var config = msg.b;
+				return _Utils_Tuple2(
+					A2(
+						elm$core$Basics$composeL,
+						author$project$Main$setQuery(
+							elm$core$Maybe$Just(
+								A2(author$project$Topic$blankQuery, id, config))),
+						author$project$Main$show(id))(model),
+					elm$core$Platform$Cmd$none);
+			case 'DHide':
 				var id = msg.a;
 				return _Utils_Tuple2(
 					A2(
-						author$project$Main$updateTopics,
-						model,
-						A2(
-							elm$core$List$map,
-							A2(author$project$Topic$setHidden, id, false),
-							model.topics)),
+						elm$core$Basics$composeL,
+						author$project$Main$setQuery(elm$core$Maybe$Nothing),
+						author$project$Main$hide(id))(model),
 					elm$core$Platform$Cmd$none);
-			case 'TblHide':
-				var id = msg.a;
-				return _Utils_Tuple2(
-					A2(
-						author$project$Main$updateTopics,
-						model,
+			case 'DSetQueryVariable':
+				var variable = msg.a;
+				var _n1 = model.query;
+				if (_n1.$ === 'Just') {
+					var q = _n1.a;
+					var vs = A3(
+						author$project$Util$replaceIf,
+						function (v) {
+							return _Utils_eq(v.code, variable.code);
+						},
+						variable,
+						q.variables);
+					return _Utils_Tuple2(
 						A2(
-							elm$core$List$map,
-							A2(author$project$Topic$setHidden, id, true),
-							model.topics)),
-					elm$core$Platform$Cmd$none);
-			case 'TblGetConfig':
+							author$project$Main$setQuery,
+							elm$core$Maybe$Just(
+								_Utils_update(
+									q,
+									{variables: vs})),
+							model),
+						elm$core$Platform$Cmd$none);
+				} else {
+					return _Utils_Tuple2(
+						author$project$Main$errorModel('Query was Nothing when it shouldn\'t have been!'),
+						elm$core$Platform$Cmd$none);
+				}
+			case 'DGetConfig':
 				var id = msg.a;
 				return _Utils_Tuple2(
 					model,
 					A2(
 						elm$core$Task$attempt,
 						function (x) {
-							return author$project$Main$TableMessage(
-								A2(author$project$Main$TblGotConfig, id, x));
+							return author$project$Main$DatasetMessage(
+								A2(author$project$Main$DGotConfig, id, x));
 						},
-						author$project$Topic$getTableConfig(id)));
+						author$project$Topic$getDatasetConfig(id)));
 			default:
 				var id = msg.a;
 				var result = msg.b;
@@ -6015,23 +6103,38 @@ var author$project$Main$handleTableMsg = F2(
 					var config = result.a;
 					return _Utils_Tuple2(
 						A2(
-							author$project$Main$updateTopics,
-							model,
+							elm$core$Basics$composeL,
+							author$project$Main$setQuery(
+								elm$core$Maybe$Just(
+									A2(author$project$Topic$blankQuery, id, config))),
 							A2(
-								elm$core$List$map,
-								A2(
-									elm$core$Basics$composeL,
-									A2(author$project$Topic$addTableConfig, id, config),
-									A2(author$project$Topic$setHidden, id, false)),
-								model.topics)),
+								author$project$Main$updateTopic,
+								id,
+								F2(
+									function (x, y) {
+										return A3(
+											author$project$Topic$addDatasetConfig,
+											config,
+											x,
+											A3(author$project$Topic$setHidden, false, x, y));
+									})))(model),
 						elm$core$Platform$Cmd$none);
 				} else {
-					return _Utils_Tuple2(author$project$Main$errorModel, elm$core$Platform$Cmd$none);
+					var e = result.a;
+					return _Utils_Tuple2(
+						author$project$Main$errorModel(
+							elm$core$Debug$toString(e)),
+						elm$core$Platform$Cmd$none);
 				}
 		}
 	});
+var author$project$Main$setLoading = function (model) {
+	return _Utils_update(
+		model,
+		{isLoading: true});
+};
 var author$project$Topic$addSubTopics = F3(
-	function (id, subTopics, topic) {
+	function (subTopics, id, topic) {
 		if (topic.$ === 'TopicList') {
 			var list = topic.a;
 			return _Utils_eq(list.id, id) ? author$project$Topic$TopicList(
@@ -6043,7 +6146,7 @@ var author$project$Topic$addSubTopics = F3(
 					{
 						subTopics: A2(
 							elm$core$List$map,
-							A2(author$project$Topic$addSubTopics, id, subTopics),
+							A2(author$project$Topic$addSubTopics, subTopics, id),
 							list.subTopics)
 					}));
 		} else {
@@ -6061,12 +6164,13 @@ var author$project$Main$update = F2(
 					_Utils_update(
 						model,
 						{
-							title: A2(elm$core$String$join, '', s)
+							errorMsg: elm$core$Maybe$Just(
+								A2(elm$core$String$join, '', s))
 						}),
 					elm$core$Platform$Cmd$none);
 			case 'GetTopics':
 				return _Utils_Tuple2(
-					model,
+					author$project$Main$setLoading(model),
 					A2(
 						elm$core$Task$attempt,
 						author$project$Main$GotMainTopics,
@@ -6082,37 +6186,29 @@ var author$project$Main$update = F2(
 			case 'Show':
 				var id = msg.a;
 				return _Utils_Tuple2(
-					A2(
-						author$project$Main$updateTopics,
-						model,
-						A2(
-							elm$core$List$map,
-							A2(author$project$Topic$setHidden, id, false),
-							model.topics)),
+					A2(author$project$Main$show, id, model),
 					elm$core$Platform$Cmd$none);
 			case 'Hide':
 				var id = msg.a;
 				return _Utils_Tuple2(
-					A2(
-						author$project$Main$updateTopics,
-						model,
-						A2(
-							elm$core$List$map,
-							A2(author$project$Topic$setHidden, id, true),
-							model.topics)),
+					A2(author$project$Main$hide, id, model),
 					elm$core$Platform$Cmd$none);
-			case 'TableMessage':
-				var tblMsg = msg.a;
-				return A2(author$project$Main$handleTableMsg, tblMsg, model);
+			case 'DatasetMessage':
+				var dMsg = msg.a;
+				return A2(author$project$Main$handleDatasetMsg, dMsg, model);
 			case 'GotMainTopics':
 				var result = msg.a;
 				if (result.$ === 'Ok') {
 					var topics = result.a;
 					return _Utils_Tuple2(
-						A2(author$project$Main$updateTopics, model, topics),
+						A2(author$project$Main$updateTopics, topics, model),
 						elm$core$Platform$Cmd$none);
 				} else {
-					return _Utils_Tuple2(author$project$Main$errorModel, elm$core$Platform$Cmd$none);
+					var e = result.a;
+					return _Utils_Tuple2(
+						author$project$Main$errorModel(
+							elm$core$Debug$toString(e)),
+						elm$core$Platform$Cmd$none);
 				}
 			default:
 				var id = msg.a;
@@ -6120,19 +6216,25 @@ var author$project$Main$update = F2(
 				if (result.$ === 'Ok') {
 					var subTopics = result.a;
 					return _Utils_Tuple2(
-						A2(
-							author$project$Main$updateTopics,
-							model,
-							A2(
-								elm$core$List$map,
-								A2(
-									elm$core$Basics$composeL,
-									A2(author$project$Topic$addSubTopics, id, subTopics),
-									A2(author$project$Topic$setHidden, id, false)),
-								model.topics)),
+						A3(
+							author$project$Main$updateTopic,
+							id,
+							F2(
+								function (x, y) {
+									return A3(
+										author$project$Topic$addSubTopics,
+										subTopics,
+										x,
+										A3(author$project$Topic$setHidden, false, x, y));
+								}),
+							model),
 						elm$core$Platform$Cmd$none);
 				} else {
-					return _Utils_Tuple2(author$project$Main$errorModel, elm$core$Platform$Cmd$none);
+					var e = result.a;
+					return _Utils_Tuple2(
+						author$project$Main$errorModel(
+							elm$core$Debug$toString(e)),
+						elm$core$Platform$Cmd$none);
 				}
 		}
 	});
@@ -6347,31 +6449,69 @@ var abadi199$elm_input_extra$MultiSelect$multiSelect = F3(
 var abadi199$elm_input_extra$MultiSelect$defaultOptions = function (onChangeHandler) {
 	return {items: _List_Nil, onChange: onChangeHandler};
 };
-var author$project$Main$ShowStrings = function (a) {
-	return {$: 'ShowStrings', a: a};
+var author$project$Main$DSetQueryVariable = function (a) {
+	return {$: 'DSetQueryVariable', a: a};
 };
-var elm$core$Debug$log = _Debug_log;
-var author$project$Main$onChange = function (s) {
-	var _n0 = A2(elm$core$Debug$log, 's', 12);
-	return author$project$Main$ShowStrings(s);
+var elm$core$List$repeatHelp = F3(
+	function (result, n, value) {
+		repeatHelp:
+		while (true) {
+			if (n <= 0) {
+				return result;
+			} else {
+				var $temp$result = A2(elm$core$List$cons, value, result),
+					$temp$n = n - 1,
+					$temp$value = value;
+				result = $temp$result;
+				n = $temp$n;
+				value = $temp$value;
+				continue repeatHelp;
+			}
+		}
+	});
+var elm$core$List$repeat = F2(
+	function (n, value) {
+		return A3(elm$core$List$repeatHelp, _List_Nil, n, value);
+	});
+var author$project$Main$onQueryChange = F2(
+	function (variable, s) {
+		return author$project$Main$DatasetMessage(
+			author$project$Main$DSetQueryVariable(
+				_Utils_update(
+					variable,
+					{
+						values: A3(
+							elm$core$List$map2,
+							elm$core$Tuple$pair,
+							s,
+							A2(
+								elm$core$List$repeat,
+								elm$core$List$length(s),
+								''))
+					})));
+	});
+var elm$core$Tuple$second = function (_n0) {
+	var y = _n0.b;
+	return y;
 };
-var author$project$Main$valueSelectOptions = function (variable) {
-	var defaultOptions = abadi199$elm_input_extra$MultiSelect$defaultOptions(author$project$Main$onChange);
+var author$project$Main$querySelectOptions = function (variable) {
+	var defaultOptions = abadi199$elm_input_extra$MultiSelect$defaultOptions(
+		author$project$Main$onQueryChange(variable));
 	return _Utils_update(
 		defaultOptions,
 		{
 			items: A2(
 				elm$core$List$map,
 				function (v) {
-					return {enabled: true, text: v, value: v};
+					return {enabled: true, text: v.b, value: v.a};
 				},
-				variable.valueTexts)
+				variable.values)
 		});
 };
 var author$project$Main$variableHtml = function (variable) {
 	return A3(
 		abadi199$elm_input_extra$MultiSelect$multiSelect,
-		author$project$Main$valueSelectOptions(variable),
+		author$project$Main$querySelectOptions(variable),
 		_List_Nil,
 		_List_Nil);
 };
@@ -6396,25 +6536,26 @@ var author$project$Main$configHtml = function (config) {
 		return elm$html$Html$text('');
 	}
 };
-var author$project$Main$TblGetConfig = function (a) {
-	return {$: 'TblGetConfig', a: a};
+var author$project$Main$DGetConfig = function (a) {
+	return {$: 'DGetConfig', a: a};
 };
-var author$project$Main$TblHide = function (a) {
-	return {$: 'TblHide', a: a};
+var author$project$Main$DHide = function (a) {
+	return {$: 'DHide', a: a};
 };
-var author$project$Main$TblShow = function (a) {
-	return {$: 'TblShow', a: a};
-};
-var author$project$Main$tableOnClick = function (table) {
-	var _n0 = table.config;
+var author$project$Main$DShow = F2(
+	function (a, b) {
+		return {$: 'DShow', a: a, b: b};
+	});
+var author$project$Main$datasetOnClick = function (dataset) {
+	var _n0 = dataset.config;
 	if (_n0.$ === 'Just') {
 		var config = _n0.a;
-		return table.isHidden ? author$project$Main$TableMessage(
-			author$project$Main$TblShow(table.id)) : author$project$Main$TableMessage(
-			author$project$Main$TblHide(table.id));
+		return dataset.isHidden ? author$project$Main$DatasetMessage(
+			A2(author$project$Main$DShow, dataset.id, config)) : author$project$Main$DatasetMessage(
+			author$project$Main$DHide(dataset.id));
 	} else {
-		return author$project$Main$TableMessage(
-			author$project$Main$TblGetConfig(table.id));
+		return author$project$Main$DatasetMessage(
+			author$project$Main$DGetConfig(dataset.id));
 	}
 };
 var author$project$Main$GetSubTopics = function (a) {
@@ -6463,7 +6604,7 @@ var author$project$Main$topicHtml = function (topic) {
 					list.isHidden ? _List_Nil : A2(elm$core$List$map, author$project$Main$topicHtml, list.subTopics))
 				]));
 	} else {
-		var table = topic.a;
+		var dataset = topic.a;
 		return A2(
 			elm$html$Html$li,
 			_List_Nil,
@@ -6474,46 +6615,42 @@ var author$project$Main$topicHtml = function (topic) {
 					_List_fromArray(
 						[
 							elm$html$Html$Events$onClick(
-							author$project$Main$tableOnClick(table))
+							author$project$Main$datasetOnClick(dataset))
 						]),
 					_List_fromArray(
 						[
-							elm$html$Html$text(table.text)
+							elm$html$Html$text(dataset.text)
 						])),
-					table.isHidden ? elm$html$Html$text('') : author$project$Main$configHtml(table.config)
+					dataset.isHidden ? elm$html$Html$text('') : author$project$Main$configHtml(dataset.config)
 				]));
 	}
 };
 var elm$virtual_dom$VirtualDom$style = _VirtualDom_style;
 var elm$html$Html$Attributes$style = elm$virtual_dom$VirtualDom$style;
 var author$project$Main$viewTopics = function (model) {
-	var _n0 = elm$core$List$length(model.topics);
-	if (!_n0) {
-		return elm$html$Html$text('Loading...');
-	} else {
-		return A2(
-			elm$html$Html$div,
-			_List_Nil,
-			_List_fromArray(
-				[
-					elm$html$Html$text(model.title),
-					A2(
-					elm$html$Html$button,
-					_List_fromArray(
-						[
-							elm$html$Html$Events$onClick(author$project$Main$GetTopics),
-							A2(elm$html$Html$Attributes$style, 'display', 'block')
-						]),
-					_List_fromArray(
-						[
-							elm$html$Html$text('Get Topics!')
-						])),
-					A2(
-					elm$html$Html$ul,
-					_List_Nil,
-					A2(elm$core$List$map, author$project$Main$topicHtml, model.topics))
-				]));
-	}
+	return A2(
+		elm$html$Html$div,
+		_List_Nil,
+		_List_fromArray(
+			[
+				elm$html$Html$text(
+				A2(elm$core$Maybe$withDefault, '', model.errorMsg)),
+				A2(
+				elm$html$Html$button,
+				_List_fromArray(
+					[
+						elm$html$Html$Events$onClick(author$project$Main$GetTopics),
+						A2(elm$html$Html$Attributes$style, 'display', 'block')
+					]),
+				_List_fromArray(
+					[
+						elm$html$Html$text('Get Topics!')
+					])),
+				A2(
+				elm$html$Html$ul,
+				_List_Nil,
+				A2(elm$core$List$map, author$project$Main$topicHtml, model.topics))
+			]));
 };
 var elm$html$Html$h2 = _VirtualDom_node('h2');
 var author$project$Main$view = function (model) {

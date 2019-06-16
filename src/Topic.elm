@@ -1,4 +1,4 @@
-module Topic exposing (Config, TableAndConfig, TableData, Topic(..), Variable, addSubTopics, addTableConfig, configEncoder, getData, getTableConfig, getTopics, listConstructor, setHidden, ssbTopicsUrl, subListDecoder, tableConfigDecoder, tableConstructor, tableDataDecoder, tableDecoder, topicDecoder, topicListDecoder, variableDecoder)
+module Topic exposing (Config, DatasetData, DatasetQuery, Topic(..), Variable, addDatasetConfig, addSubTopics, blankQuery, configEncoder, datasetConfigDecoder, datasetConstructor, datasetDataDecoder, datasetDecoder, getData, getDatasetConfig, getTopics, listConstructor, setHidden, ssbTopicsUrl, subListDecoder, topicDecoder, topicListDecoder, variableDecoder)
 
 import Http
 import HttpUtil
@@ -13,10 +13,10 @@ ssbTopicsUrl =
 
 type Topic
     = TopicList { id : String, text : String, subTopics : List Topic, isHidden : Bool }
-    | Table { id : String, text : String, config : Maybe Config, isHidden : Bool }
+    | Dataset { id : String, text : String, config : Maybe Config, isHidden : Bool }
 
 
-type alias TableAndConfig =
+type alias DatasetQuery =
     { id : String, variables : List Variable }
 
 
@@ -25,10 +25,10 @@ type alias Config =
 
 
 type alias Variable =
-    { code : String, text : String, values : List String, valueTexts : List String }
+    { code : String, text : String, values : List ( String, String ) }
 
 
-type alias TableData =
+type alias DatasetData =
     { dummy : String }
 
 
@@ -36,8 +36,8 @@ listConstructor id text subTopics =
     TopicList { id = id, text = text, subTopics = subTopics, isHidden = False }
 
 
-tableConstructor id text =
-    Table { id = id, text = text, config = Nothing, isHidden = False }
+datasetConstructor id text =
+    Dataset { id = id, text = text, config = Nothing, isHidden = False }
 
 
 getTopics : String -> Task.Task Http.Error (List Topic)
@@ -45,45 +45,50 @@ getTopics id =
     HttpUtil.httpGetFromJson (ssbTopicsUrl ++ id) (topicListDecoder id)
 
 
-getTableConfig : String -> Task.Task Http.Error Config
-getTableConfig id =
-    HttpUtil.httpGetFromJson (ssbTopicsUrl ++ id) tableConfigDecoder
+getDatasetConfig : String -> Task.Task Http.Error Config
+getDatasetConfig id =
+    HttpUtil.httpGetFromJson (ssbTopicsUrl ++ id) datasetConfigDecoder
 
 
-getData : String -> Config -> Task.Task Http.Error TableData
+getData : String -> Config -> Task.Task Http.Error DatasetData
 getData id config =
-    HttpUtil.httpPostFromJson (ssbTopicsUrl ++ id) (configEncoder config) tableDataDecoder
+    HttpUtil.httpPostFromJson (ssbTopicsUrl ++ id) (configEncoder config) datasetDataDecoder
 
 
-addSubTopics : String -> List Topic -> Topic -> Topic
-addSubTopics id subTopics topic =
+addSubTopics : List Topic -> String -> Topic -> Topic
+addSubTopics subTopics id topic =
     case topic of
         TopicList list ->
             if list.id == id then
                 TopicList { list | subTopics = subTopics }
 
             else
-                TopicList { list | subTopics = List.map (addSubTopics id subTopics) list.subTopics }
+                TopicList { list | subTopics = List.map (addSubTopics subTopics id) list.subTopics }
 
         _ ->
             topic
 
 
-addTableConfig id config topic =
+addDatasetConfig : Config -> String -> Topic -> Topic
+addDatasetConfig config id topic =
     case topic of
         TopicList list ->
-            TopicList { list | subTopics = List.map (addTableConfig id config) list.subTopics }
+            TopicList { list | subTopics = List.map (addDatasetConfig config id) list.subTopics }
 
-        Table table ->
-            if table.id == id then
-                Table { table | config = Just config, isHidden = False }
+        Dataset dataset ->
+            if dataset.id == id then
+                Dataset { dataset | config = Just config, isHidden = False }
 
             else
                 topic
 
 
-setHidden : String -> Bool -> Topic -> Topic
-setHidden id bool topic =
+
+--setAllHidden : Bool -> String -> Topic -> Topic
+
+
+setHidden : Bool -> String -> Topic -> Topic
+setHidden bool id topic =
     case topic of
         TopicList list ->
             if list.id == id then
@@ -91,14 +96,14 @@ setHidden id bool topic =
 
             else
                 TopicList
-                    { list | subTopics = List.map (setHidden id bool) list.subTopics }
+                    { list | subTopics = List.map (setHidden bool id) list.subTopics }
 
-        Table table ->
-            if table.id == id then
-                Table { table | isHidden = bool }
+        Dataset dataset ->
+            if dataset.id == id then
+                Dataset { dataset | isHidden = bool }
 
             else
-                Table { table | isHidden = True }
+                Dataset { dataset | isHidden = True }
 
 
 topicListDecoder id =
@@ -114,16 +119,16 @@ topicDecoder id =
                         subListDecoder id
 
                     "t" ->
-                        tableDecoder
+                        datasetDecoder
 
                     _ ->
                         Decode.fail "Couldn't decode error"
             )
 
 
-tableDecoder : Decode.Decoder Topic
-tableDecoder =
-    Decode.map2 tableConstructor
+datasetDecoder : Decode.Decoder Topic
+datasetDecoder =
+    Decode.map2 datasetConstructor
         (Decode.map
             (\s -> Maybe.withDefault "UNKNOWN" (List.head (String.split ":" s)))
             (Decode.field
@@ -147,8 +152,8 @@ subListDecoder id =
         (Decode.succeed [])
 
 
-tableConfigDecoder : Decode.Decoder Config
-tableConfigDecoder =
+datasetConfigDecoder : Decode.Decoder Config
+datasetConfigDecoder =
     Decode.map2 Config
         (Decode.field "title" Decode.string)
         (Decode.field "variables" (Decode.list variableDecoder))
@@ -156,16 +161,19 @@ tableConfigDecoder =
 
 variableDecoder : Decode.Decoder Variable
 variableDecoder =
-    Decode.map4 Variable
+    Decode.map3 Variable
         (Decode.field "code" Decode.string)
         (Decode.field "text" Decode.string)
-        (Decode.field "values" (Decode.list Decode.string))
-        (Decode.field "valueTexts" (Decode.list Decode.string))
+        (Decode.map2
+            (List.map2 Tuple.pair)
+            (Decode.field "values" (Decode.list Decode.string))
+            (Decode.field "valueTexts" (Decode.list Decode.string))
+        )
 
 
-tableDataDecoder : Decode.Decoder TableData
-tableDataDecoder =
-    Decode.map TableData
+datasetDataDecoder : Decode.Decoder DatasetData
+datasetDataDecoder =
+    Decode.map DatasetData
         (Decode.field "dummy" Decode.string)
 
 
@@ -180,7 +188,13 @@ configEncoder config =
                         , ( "selection"
                           , Encode.object
                                 [ ( "filter", Encode.string "item" )
-                                , ( "values", Encode.list (\x -> Encode.string x) v.values )
+                                , ( "values"
+                                  , Encode.list
+                                        (\x ->
+                                            Encode.string (Tuple.first x)
+                                        )
+                                        v.values
+                                  )
                                 ]
                           )
                         , ( "selection", Encode.object [] )
@@ -190,3 +204,8 @@ configEncoder config =
           )
         , ( "response", Encode.object [ ( "format", Encode.string "json-stat2" ) ] )
         ]
+
+
+blankQuery : String -> Config -> DatasetQuery
+blankQuery id config =
+    { id = id, variables = List.map (\v -> { v | values = [] }) config.variables }
