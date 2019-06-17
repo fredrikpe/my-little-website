@@ -5991,11 +5991,7 @@ var author$project$Topic$blankQuery = F2(
 				config.variables)
 		};
 	});
-var elm$http$Http$Header = F2(
-	function (a, b) {
-		return {$: 'Header', a: a, b: b};
-	});
-var elm$http$Http$header = elm$http$Http$Header;
+var author$project$HttpUtil$corsAnywhere = 'https://cors-anywhere.herokuapp.com/';
 var elm$http$Http$jsonBody = function (value) {
 	return A2(
 		_Http_pair,
@@ -6007,24 +6003,18 @@ var author$project$HttpUtil$httpPostFromJson = F3(
 		return elm$http$Http$task(
 			{
 				body: elm$http$Http$jsonBody(body),
-				headers: _List_fromArray(
-					[
-						A2(elm$http$Http$header, 'Content-type', 'application/json')
-					]),
-				method: 'Post',
+				headers: _List_Nil,
+				method: 'POST',
 				resolver: elm$http$Http$stringResolver(
 					author$project$HttpUtil$responseToResult(decoder)),
 				timeout: elm$core$Maybe$Nothing,
-				url: url
+				url: _Utils_ap(author$project$HttpUtil$corsAnywhere, url)
 			});
 	});
 var author$project$Topic$DatasetData = function (dummy) {
 	return {dummy: dummy};
 };
-var author$project$Topic$datasetDataDecoder = A2(
-	elm$json$Json$Decode$map,
-	author$project$Topic$DatasetData,
-	A2(elm$json$Json$Decode$field, 'dummy', elm$json$Json$Decode$string));
+var author$project$Topic$datasetDataDecoder = A2(elm$json$Json$Decode$map, author$project$Topic$DatasetData, elm$json$Json$Decode$string);
 var elm$json$Json$Encode$list = F2(
 	function (func, entries) {
 		return _Json_wrap(

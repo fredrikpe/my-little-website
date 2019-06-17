@@ -173,8 +173,7 @@ variableDecoder =
 
 datasetDataDecoder : Decode.Decoder DatasetData
 datasetDataDecoder =
-    Decode.map DatasetData
-        (Decode.field "dummy" Decode.string)
+    Decode.map DatasetData Decode.string
 
 
 queryEncoder : DatasetQuery -> Encode.Value

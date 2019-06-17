@@ -6,12 +6,16 @@ import Json.Encode as Encode
 import Task
 
 
+corsAnywhere =
+    "https://cors-anywhere.herokuapp.com/"
+
+
 httpPostFromJson : String -> Encode.Value -> Decode.Decoder a -> Task.Task Http.Error a
 httpPostFromJson url body decoder =
     Http.task
-        { url = url
-        , method = "Post"
-        , headers = [ Http.header "Content-type" "application/json" ]
+        { url = corsAnywhere ++ url
+        , method = "POST"
+        , headers = []
         , body = Http.jsonBody body
         , resolver = Http.stringResolver (responseToResult decoder)
         , timeout = Nothing
