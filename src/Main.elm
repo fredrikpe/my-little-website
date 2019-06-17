@@ -80,6 +80,9 @@ type DatasetMsg
     | DGetConfig String
     | DGotConfig String (Result Http.Error Config)
     | DSetQueryVariable Variable
+    | DShowGraph
+    | DGetData
+    | DGotData (Result Http.Error DatasetData)
 
 
 type Msg
@@ -150,6 +153,22 @@ handleDatasetMsg msg model =
         DHide id ->
             ( (setQuery Nothing << hide id) model, Cmd.none )
 
+        DGetData ->
+            case model.query of
+                Just q ->
+                    ( setLoading model, Task.attempt (\x -> DatasetMessage (DGotData x)) (getData q) )
+
+                Nothing ->
+                    ( errorModel "Query was Nothing when trying to get data!", Cmd.none )
+
+        DGotData result ->
+            case result of
+                Ok data ->
+                    ( { model | errorMsg = Just data.dummy }, Cmd.none )
+
+                Err e ->
+                    ( errorModel (Debug.toString e), Cmd.none )
+
         DSetQueryVariable variable ->
             case model.query of
                 Just q ->
@@ -185,6 +204,14 @@ handleDatasetMsg msg model =
 
                 Err e ->
                     ( errorModel (Debug.toString e), Cmd.none )
+
+        DShowGraph ->
+            case model.query of
+                Just q ->
+                    ( { model | errorMsg = Just (queryToString q) }, Cmd.none )
+
+                Nothing ->
+                    ( errorModel "Query was Nothing when it shouldn't have been!", Cmd.none )
 
 
 view : Model -> Html.Html Msg
@@ -243,7 +270,12 @@ configHtml config =
     case config of
         Just c ->
             Html.div [ Html.Attributes.class "view__config_div" ]
-                (List.map (\v -> variableHtml v) c.variables)
+                (List.map (\v -> variableHtml v) c.variables
+                    ++ [ Html.button
+                            [ Html.Events.onClick (DatasetMessage DGetData) ]
+                            [ Html.text "Show graph" ]
+                       ]
+                )
 
         Nothing ->
             Html.text ""

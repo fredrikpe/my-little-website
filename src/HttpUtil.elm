@@ -11,7 +11,7 @@ httpPostFromJson url body decoder =
     Http.task
         { url = url
         , method = "Post"
-        , headers = []
+        , headers = [ Http.header "Content-type" "application/json" ]
         , body = Http.jsonBody body
         , resolver = Http.stringResolver (responseToResult decoder)
         , timeout = Nothing

@@ -5875,6 +5875,9 @@ var author$project$Main$DGotConfig = F2(
 	function (a, b) {
 		return {$: 'DGotConfig', a: a, b: b};
 	});
+var author$project$Main$DGotData = function (a) {
+	return {$: 'DGotData', a: a};
+};
 var author$project$Main$DatasetMessage = function (a) {
 	return {$: 'DatasetMessage', a: a};
 };
@@ -5933,6 +5936,11 @@ var author$project$Main$hide = function (id) {
 		id,
 		author$project$Topic$setHidden(true));
 };
+var author$project$Main$setLoading = function (model) {
+	return _Utils_update(
+		model,
+		{isLoading: true});
+};
 var author$project$Main$setQuery = F2(
 	function (query, model) {
 		return _Utils_update(
@@ -5983,6 +5991,116 @@ var author$project$Topic$blankQuery = F2(
 				config.variables)
 		};
 	});
+var elm$http$Http$Header = F2(
+	function (a, b) {
+		return {$: 'Header', a: a, b: b};
+	});
+var elm$http$Http$header = elm$http$Http$Header;
+var elm$http$Http$jsonBody = function (value) {
+	return A2(
+		_Http_pair,
+		'application/json',
+		A2(elm$json$Json$Encode$encode, 0, value));
+};
+var author$project$HttpUtil$httpPostFromJson = F3(
+	function (url, body, decoder) {
+		return elm$http$Http$task(
+			{
+				body: elm$http$Http$jsonBody(body),
+				headers: _List_fromArray(
+					[
+						A2(elm$http$Http$header, 'Content-type', 'application/json')
+					]),
+				method: 'Post',
+				resolver: elm$http$Http$stringResolver(
+					author$project$HttpUtil$responseToResult(decoder)),
+				timeout: elm$core$Maybe$Nothing,
+				url: url
+			});
+	});
+var author$project$Topic$DatasetData = function (dummy) {
+	return {dummy: dummy};
+};
+var author$project$Topic$datasetDataDecoder = A2(
+	elm$json$Json$Decode$map,
+	author$project$Topic$DatasetData,
+	A2(elm$json$Json$Decode$field, 'dummy', elm$json$Json$Decode$string));
+var elm$json$Json$Encode$list = F2(
+	function (func, entries) {
+		return _Json_wrap(
+			A3(
+				elm$core$List$foldl,
+				_Json_addEntry(func),
+				_Json_emptyArray(_Utils_Tuple0),
+				entries));
+	});
+var elm$json$Json$Encode$object = function (pairs) {
+	return _Json_wrap(
+		A3(
+			elm$core$List$foldl,
+			F2(
+				function (_n0, obj) {
+					var k = _n0.a;
+					var v = _n0.b;
+					return A3(_Json_addField, k, v, obj);
+				}),
+			_Json_emptyObject(_Utils_Tuple0),
+			pairs));
+};
+var elm$json$Json$Encode$string = _Json_wrap;
+var author$project$Topic$queryEncoder = function (query) {
+	return elm$json$Json$Encode$object(
+		_List_fromArray(
+			[
+				_Utils_Tuple2(
+				'query',
+				A2(
+					elm$json$Json$Encode$list,
+					function (v) {
+						return elm$json$Json$Encode$object(
+							_List_fromArray(
+								[
+									_Utils_Tuple2(
+									'code',
+									elm$json$Json$Encode$string(v.code)),
+									_Utils_Tuple2(
+									'selection',
+									elm$json$Json$Encode$object(
+										_List_fromArray(
+											[
+												_Utils_Tuple2(
+												'filter',
+												elm$json$Json$Encode$string('item')),
+												_Utils_Tuple2(
+												'values',
+												A2(
+													elm$json$Json$Encode$list,
+													function (x) {
+														return elm$json$Json$Encode$string(x.a);
+													},
+													v.values))
+											])))
+								]));
+					},
+					query.variables)),
+				_Utils_Tuple2(
+				'response',
+				elm$json$Json$Encode$object(
+					_List_fromArray(
+						[
+							_Utils_Tuple2(
+							'format',
+							elm$json$Json$Encode$string('json-stat2'))
+						])))
+			]));
+};
+var author$project$Topic$getData = function (query) {
+	return A3(
+		author$project$HttpUtil$httpPostFromJson,
+		_Utils_ap(author$project$Topic$ssbTopicsUrl, query.id),
+		author$project$Topic$queryEncoder(query),
+		author$project$Topic$datasetDataDecoder);
+};
 var author$project$Topic$Config = F2(
 	function (title, variables) {
 		return {title: title, variables: variables};
@@ -6025,6 +6143,12 @@ var author$project$Topic$getDatasetConfig = function (id) {
 		_Utils_ap(author$project$Topic$ssbTopicsUrl, id),
 		author$project$Topic$datasetConfigDecoder);
 };
+var author$project$Topic$queryToString = function (query) {
+	return A2(
+		elm$json$Json$Encode$encode,
+		4,
+		author$project$Topic$queryEncoder(query));
+};
 var author$project$Util$replaceIf = F3(
 	function (predicate, value, list) {
 		return A2(
@@ -6059,11 +6183,47 @@ var author$project$Main$handleDatasetMsg = F2(
 						author$project$Main$setQuery(elm$core$Maybe$Nothing),
 						author$project$Main$hide(id))(model),
 					elm$core$Platform$Cmd$none);
-			case 'DSetQueryVariable':
-				var variable = msg.a;
+			case 'DGetData':
 				var _n1 = model.query;
 				if (_n1.$ === 'Just') {
 					var q = _n1.a;
+					return _Utils_Tuple2(
+						author$project$Main$setLoading(model),
+						A2(
+							elm$core$Task$attempt,
+							function (x) {
+								return author$project$Main$DatasetMessage(
+									author$project$Main$DGotData(x));
+							},
+							author$project$Topic$getData(q)));
+				} else {
+					return _Utils_Tuple2(
+						author$project$Main$errorModel('Query was Nothing when trying to get data!'),
+						elm$core$Platform$Cmd$none);
+				}
+			case 'DGotData':
+				var result = msg.a;
+				if (result.$ === 'Ok') {
+					var data = result.a;
+					return _Utils_Tuple2(
+						_Utils_update(
+							model,
+							{
+								errorMsg: elm$core$Maybe$Just(data.dummy)
+							}),
+						elm$core$Platform$Cmd$none);
+				} else {
+					var e = result.a;
+					return _Utils_Tuple2(
+						author$project$Main$errorModel(
+							elm$core$Debug$toString(e)),
+						elm$core$Platform$Cmd$none);
+				}
+			case 'DSetQueryVariable':
+				var variable = msg.a;
+				var _n3 = model.query;
+				if (_n3.$ === 'Just') {
+					var q = _n3.a;
 					var vs = A3(
 						author$project$Util$replaceIf,
 						function (v) {
@@ -6096,7 +6256,7 @@ var author$project$Main$handleDatasetMsg = F2(
 								A2(author$project$Main$DGotConfig, id, x));
 						},
 						author$project$Topic$getDatasetConfig(id)));
-			default:
+			case 'DGotConfig':
 				var id = msg.a;
 				var result = msg.b;
 				if (result.$ === 'Ok') {
@@ -6126,13 +6286,25 @@ var author$project$Main$handleDatasetMsg = F2(
 							elm$core$Debug$toString(e)),
 						elm$core$Platform$Cmd$none);
 				}
+			default:
+				var _n5 = model.query;
+				if (_n5.$ === 'Just') {
+					var q = _n5.a;
+					return _Utils_Tuple2(
+						_Utils_update(
+							model,
+							{
+								errorMsg: elm$core$Maybe$Just(
+									author$project$Topic$queryToString(q))
+							}),
+						elm$core$Platform$Cmd$none);
+				} else {
+					return _Utils_Tuple2(
+						author$project$Main$errorModel('Query was Nothing when it shouldn\'t have been!'),
+						elm$core$Platform$Cmd$none);
+				}
 		}
 	});
-var author$project$Main$setLoading = function (model) {
-	return _Utils_update(
-		model,
-		{isLoading: true});
-};
 var author$project$Topic$addSubTopics = F3(
 	function (subTopics, id, topic) {
 		if (topic.$ === 'TopicList') {
@@ -6239,6 +6411,7 @@ var author$project$Main$update = F2(
 		}
 	});
 var author$project$Main$GetTopics = {$: 'GetTopics'};
+var author$project$Main$DGetData = {$: 'DGetData'};
 var abadi199$elm_input_extra$MultiSelect$Option = F3(
 	function (value, text, selected) {
 		return {selected: selected, text: text, value: value};
@@ -6400,7 +6573,6 @@ var elm$html$Html$Attributes$boolProperty = F2(
 var elm$html$Html$Attributes$disabled = elm$html$Html$Attributes$boolProperty('disabled');
 var elm$html$Html$Attributes$multiple = elm$html$Html$Attributes$boolProperty('multiple');
 var elm$html$Html$Attributes$selected = elm$html$Html$Attributes$boolProperty('selected');
-var elm$json$Json$Encode$string = _Json_wrap;
 var elm$html$Html$Attributes$stringProperty = F2(
 	function (key, string) {
 		return A2(
@@ -6515,8 +6687,15 @@ var author$project$Main$variableHtml = function (variable) {
 		_List_Nil,
 		_List_Nil);
 };
+var elm$html$Html$button = _VirtualDom_node('button');
 var elm$html$Html$div = _VirtualDom_node('div');
 var elm$html$Html$Attributes$class = elm$html$Html$Attributes$stringProperty('className');
+var elm$html$Html$Events$onClick = function (msg) {
+	return A2(
+		elm$html$Html$Events$on,
+		'click',
+		elm$json$Json$Decode$succeed(msg));
+};
 var author$project$Main$configHtml = function (config) {
 	if (config.$ === 'Just') {
 		var c = config.a;
@@ -6526,12 +6705,27 @@ var author$project$Main$configHtml = function (config) {
 				[
 					elm$html$Html$Attributes$class('view__config_div')
 				]),
-			A2(
-				elm$core$List$map,
-				function (v) {
-					return author$project$Main$variableHtml(v);
-				},
-				c.variables));
+			_Utils_ap(
+				A2(
+					elm$core$List$map,
+					function (v) {
+						return author$project$Main$variableHtml(v);
+					},
+					c.variables),
+				_List_fromArray(
+					[
+						A2(
+						elm$html$Html$button,
+						_List_fromArray(
+							[
+								elm$html$Html$Events$onClick(
+								author$project$Main$DatasetMessage(author$project$Main$DGetData))
+							]),
+						_List_fromArray(
+							[
+								elm$html$Html$text('Show graph')
+							]))
+					])));
 	} else {
 		return elm$html$Html$text('');
 	}
@@ -6570,15 +6764,8 @@ var author$project$Main$Show = function (a) {
 var author$project$Main$topicListOnClick = function (list) {
 	return (!elm$core$List$length(list.subTopics)) ? author$project$Main$GetSubTopics(list.id) : (list.isHidden ? author$project$Main$Show(list.id) : author$project$Main$Hide(list.id));
 };
-var elm$html$Html$button = _VirtualDom_node('button');
 var elm$html$Html$li = _VirtualDom_node('li');
 var elm$html$Html$ul = _VirtualDom_node('ul');
-var elm$html$Html$Events$onClick = function (msg) {
-	return A2(
-		elm$html$Html$Events$on,
-		'click',
-		elm$json$Json$Decode$succeed(msg));
-};
 var author$project$Main$topicHtml = function (topic) {
 	if (topic.$ === 'TopicList') {
 		var list = topic.a;

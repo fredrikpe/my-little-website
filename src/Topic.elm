@@ -1,4 +1,4 @@
-module Topic exposing (Config, DatasetData, DatasetQuery, Topic(..), Variable, addDatasetConfig, addSubTopics, blankQuery, configEncoder, datasetConfigDecoder, datasetConstructor, datasetDataDecoder, datasetDecoder, getData, getDatasetConfig, getTopics, listConstructor, setHidden, ssbTopicsUrl, subListDecoder, topicDecoder, topicListDecoder, variableDecoder)
+module Topic exposing (Config, DatasetData, DatasetQuery, Topic(..), Variable, addDatasetConfig, addSubTopics, blankQuery, datasetConfigDecoder, datasetConstructor, datasetDataDecoder, datasetDecoder, getData, getDatasetConfig, getTopics, listConstructor, queryEncoder, queryToString, setHidden, ssbTopicsUrl, subListDecoder, topicDecoder, topicListDecoder, variableDecoder)
 
 import Http
 import HttpUtil
@@ -50,9 +50,9 @@ getDatasetConfig id =
     HttpUtil.httpGetFromJson (ssbTopicsUrl ++ id) datasetConfigDecoder
 
 
-getData : String -> Config -> Task.Task Http.Error DatasetData
-getData id config =
-    HttpUtil.httpPostFromJson (ssbTopicsUrl ++ id) (configEncoder config) datasetDataDecoder
+getData : DatasetQuery -> Task.Task Http.Error DatasetData
+getData query =
+    HttpUtil.httpPostFromJson (ssbTopicsUrl ++ query.id) (queryEncoder query) datasetDataDecoder
 
 
 addSubTopics : List Topic -> String -> Topic -> Topic
@@ -177,8 +177,8 @@ datasetDataDecoder =
         (Decode.field "dummy" Decode.string)
 
 
-configEncoder : Config -> Encode.Value
-configEncoder config =
+queryEncoder : DatasetQuery -> Encode.Value
+queryEncoder query =
     Encode.object
         [ ( "query"
           , Encode.list
@@ -197,13 +197,16 @@ configEncoder config =
                                   )
                                 ]
                           )
-                        , ( "selection", Encode.object [] )
                         ]
                 )
-                config.variables
+                query.variables
           )
         , ( "response", Encode.object [ ( "format", Encode.string "json-stat2" ) ] )
         ]
+
+
+queryToString query =
+    Encode.encode 4 (queryEncoder query)
 
 
 blankQuery : String -> Config -> DatasetQuery
