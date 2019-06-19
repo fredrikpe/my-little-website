@@ -2,17 +2,31 @@
 --https://discourse.elm-lang.org/t/using-task-to-send-http-requests/2696/5
 
 
-module Main exposing (DatasetMsg(..), Model, Msg(..), configHtml, dimensionHtml, errorModel, handleDatasetMsg, hide, init, leafOnClick, main, notLoading, onQueryChange, querySelectOptions, setLoading, setQuery, show, treeHtml, treeListOnClick, update, updateTree, updateTrees, view, viewTree)
+module Main exposing (main)
 
 import Browser
+import Color
 import Dataset
-import Html
-import Html.Attributes
+import Html exposing (Html, div, h1, node, p, text)
+import Html.Attributes exposing (class)
 import Html.Events
 import Http
 import HttpUtil
 import Json.Decode as Decode
+import LineChart as LineChart
+import LineChart.Area as Area
+import LineChart.Axis as Axis
+import LineChart.Axis.Intersection as Intersection
+import LineChart.Container as Container
+import LineChart.Dots as Dots
+import LineChart.Events as Events
+import LineChart.Grid as Grid
+import LineChart.Interpolation as Interpolation
+import LineChart.Junk as Junk exposing (..)
+import LineChart.Legends as Legends
+import LineChart.Line as Line
 import MultiSelect
+import Svg exposing (Attribute, Svg, g, text_, tspan)
 import Task
 import Util
 
@@ -32,6 +46,18 @@ type alias Model =
     , errorMsg : Maybe String
     , isLoading : Bool
     , query : Maybe Dataset.Query
+    , hovered : Maybe Info
+    , dataset : Maybe Dataset.Dataset
+    }
+
+
+defaultModel =
+    { trees = []
+    , errorMsg = Nothing
+    , isLoading = False
+    , query = Nothing
+    , hovered = Nothing
+    , dataset = Nothing
     }
 
 
@@ -52,7 +78,7 @@ setLoading model =
 
 
 errorModel errorMsg =
-    { trees = [], errorMsg = Just errorMsg, isLoading = False, query = Nothing }
+    { defaultModel | errorMsg = Just errorMsg }
 
 
 setQuery query model =
@@ -69,9 +95,7 @@ hide id =
 
 init : () -> ( Model, Cmd Msg )
 init _ =
-    ( { trees = [], errorMsg = Nothing, isLoading = True, query = Nothing }
-    , Task.attempt GotRoot (Dataset.getTree "")
-    )
+    ( defaultModel, Task.attempt GotRoot (Dataset.getTree "") )
 
 
 type DatasetMsg
@@ -96,6 +120,7 @@ type Msg
     | Hide String
     | GotRoot (Result Http.Error (List Dataset.Tree))
     | GotSubTree String (Result Http.Error (List Dataset.Tree))
+    | Hover (Maybe Info)
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -103,6 +128,9 @@ update msg model =
     case msg of
         Pass ->
             ( model, Cmd.none )
+
+        Hover hovered ->
+            ( { model | hovered = hovered }, Cmd.none )
 
         ShowStrings s ->
             ( { model | errorMsg = Just (String.join "" s) }, Cmd.none )
@@ -178,8 +206,14 @@ handleDatasetMsg msg model =
 
         DGotData result ->
             case result of
-                Ok data ->
-                    ( notLoading { model | errorMsg = Just (Debug.toString data) }, Cmd.none )
+                Ok dataset ->
+                    ( notLoading
+                        { model
+                            | errorMsg = Just (Debug.toString dataset)
+                            , dataset = Just dataset
+                        }
+                    , Cmd.none
+                    )
 
                 Err e ->
                     ( errorModel (Debug.toString e), Cmd.none )
@@ -244,6 +278,7 @@ view model =
 
           else
             viewTree model
+        , chart model
         ]
 
 
@@ -324,6 +359,32 @@ dimensionHtml dimension =
         []
 
 
+chart : Model -> Html.Html Msg
+chart model =
+    LineChart.viewCustom
+        { y = Axis.default 450 "Weight" .weight
+        , x = Axis.default 700 "Age" .age
+        , container = Container.styled "line-chart-1" [ ( "font-family", "monospace" ) ]
+        , interpolation = Interpolation.default
+        , intersection = Intersection.default
+        , legends = Legends.default
+        , events = Events.hoverOne Hover
+        , junk =
+            Junk.hoverOne model.hovered
+                [ ( "Age", Debug.toString << .age )
+                , ( "Weight", Debug.toString << .weight )
+                ]
+        , grid = Grid.default
+        , area = Area.default
+        , line = Line.default
+        , dots = Dots.hoverOne model.hovered
+        }
+        [ LineChart.line Color.orange Dots.triangle "Chuck" chuck
+        , LineChart.line Color.yellow Dots.circle "Bobby" bobby
+        , LineChart.line Color.purple Dots.diamond "Alice" alice
+        ]
+
+
 onQueryChange : Dataset.Dimension -> List String -> Msg
 onQueryChange dimension s =
     DatasetMessage
@@ -356,3 +417,38 @@ leafOnClick leaf =
 
         Nothing ->
             DatasetMessage (DGetConfig leaf.id)
+
+
+type alias Info =
+    { age : Float
+    , weight : Float
+    , height : Float
+    , income : Float
+    }
+
+
+alice : List Info
+alice =
+    [ Info 10 34 1.34 0
+    , Info 16 42 1.62 3000
+    , Info 25 75 1.73 25000
+    , Info 43 83 1.75 40000
+    ]
+
+
+bobby : List Info
+bobby =
+    [ Info 10 38 1.32 0
+    , Info 17 69 1.75 2000
+    , Info 25 75 1.87 32000
+    , Info 43 77 1.87 52000
+    ]
+
+
+chuck : List Info
+chuck =
+    [ Info 10 42 1.35 0
+    , Info 15 72 1.72 1800
+    , Info 25 89 1.83 85000
+    , Info 43 95 1.84 120000
+    ]

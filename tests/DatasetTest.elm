@@ -1,16 +1,16 @@
-module TopicTest exposing (suite)
+module DatasetTest exposing (suite)
 
+import Dataset
 import Expect exposing (Expectation)
 import Fuzz exposing (Fuzzer, int, list, string)
 import Json.Decode as Decode
 import Test exposing (..)
-import Topic
 import Util
 
 
 suite : Test
 suite =
-    describe "The Topic module"
+    describe "The Dataset module"
         [ describe "Decoders"
             [ test "partialDimensionDecoder" <|
                 \_ ->
@@ -32,7 +32,7 @@ suite =
                             """
 
                         result =
-                            Decode.decodeString Topic.partialDimensionDecoder jsonString
+                            Decode.decodeString Dataset.partialDimensionDecoder jsonString
 
                         expected =
                             [ { value = "00", valueText = "t1", index = 0 }
@@ -45,7 +45,7 @@ suite =
 
                         Err _ ->
                             Expect.fail "Result was err"
-            , test "datasetDataDecoder" <|
+            , test "datasetDecoder" <|
                 \_ ->
                     let
                         jsonString =
@@ -60,7 +60,7 @@ suite =
                                                 "01": 1
                                             },
                                             "label": {
-                                                "00": "Intercontry adoptions",
+                                                "00": "Intercontry",
                                                 "01": "Stepchildren"
                                             }
                                         },
@@ -129,7 +129,7 @@ suite =
                             """
 
                         result =
-                            Decode.decodeString Topic.datasetDataDecoder jsonString
+                            Decode.decodeString Dataset.datasetDecoder jsonString
 
                         expectedValues =
                             [ 477, 465, 262, 231 ]
@@ -138,7 +138,7 @@ suite =
                             [ { code = "Adopsjonstype"
                               , text = "unknown"
                               , values =
-                                    [ { value = "00", valueText = "Intercontry adoptions", index = 0 }
+                                    [ { value = "00", valueText = "Intercontry", index = 0 }
                                     , { value = "01", valueText = "Stepchildren", index = 1 }
                                     ]
                               }
