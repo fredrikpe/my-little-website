@@ -166,5 +166,163 @@ suite =
 
                         Err _ ->
                             Expect.fail "Result was err"
+            , test "Data access 2D" <|
+                \_ ->
+                    let
+                        jsonString =
+                            """
+                            {
+                                "dimension": {
+                                    "x": {
+                                        "category": {
+                                            "index": { "x0": 0, "x1": 1 },
+                                            "label": { "x0": "", "x1": "" }
+                                        }
+                                    },
+                                    "y": {
+                                        "category": {
+                                            "index": { "y0": 0, "y1": 1, "y2": 2 },
+                                            "label": { "y0": "", "y1": "", "y2": "" }
+                                        }
+                                    } 
+                                },
+                                "id": [ "x", "y" ],
+                                "value": [ 0, 1, 2, 3, 4, 5 ]
+                            }
+                            """
+
+                        result =
+                            Decode.decodeString Dataset.datasetDecoder jsonString
+
+                        values =
+                            [ 0, 1, 2, 3, 4, 5 ]
+
+                        -- [ [ x0y0: 0, x0y1: 1, x0y2: 2 ]
+                        --   [ x1y0: 3, x1y1: 4, x1y2: 5 ] ]
+                        -- [ [ [x0y0z0, x0y0z1]
+                        --   , [x0y1z0, x0y1z1] ]
+                        -- , [ [x1y0z0, x1y0z1]
+                        --   , [x1y1z0, x1y1z1] ]
+                        --  [ 0, 1, 2, 3, 4, 5, 6, 7 ]
+                        -- x  0  0  0  0  1  1  1  1
+                        -- y  0  0  1  1  0  0  1  1
+                        -- z  0  1  0  1  0  1  0  1
+                        x0 =
+                            dimValue "x0" 0
+
+                        x1 =
+                            dimValue "x1" 1
+
+                        y0 =
+                            dimValue "y0" 0
+
+                        y1 =
+                            dimValue "y1" 1
+
+                        y2 =
+                            dimValue "y2" 2
+
+                        x =
+                            { code = "x", text = "unknown", values = [ x0, x1 ] }
+
+                        y =
+                            { code = "y", text = "unknown", values = [ y0, y1, y2 ] }
+
+                        dimensions =
+                            [ x, y ]
+                    in
+                    case result of
+                        Ok data ->
+                            Expect.all
+                                [ \d -> Expect.equalLists d.values values
+                                , \d -> Expect.equalLists d.dimensions dimensions
+                                , \d -> Expect.equal (Dataset.accessFirstDim x x0 d) Nothing
+                                ]
+                                data
+
+                        Err e ->
+                            Expect.fail (Debug.toString e)
+            , test "Data access 3D" <|
+                \_ ->
+                    let
+                        jsonString =
+                            """
+                            {
+                                "dimension": {
+                                    "x": {
+                                        "category": {
+                                            "index": { "x0": 0, "x1": 1 },
+                                            "label": { "x0": "", "x1": "" }
+                                        }
+                                    },
+                                    "y": {
+                                        "category": {
+                                            "index": { "y0": 0, "y1": 1 },
+                                            "label": { "y0": "", "y1": "" }
+                                        }
+                                    },
+                                    "z": {
+                                        "category": {
+                                            "index": { "z0": 0, "z1": 1 },
+                                            "label": { "z0": "", "z1": "" }
+                                        }
+                                    }
+                                },
+                                "id": [ "x", "y", "z" ],
+                                "value": [ 0, 1, 2, 3, 4, 5, 6, 7 ]
+                            }
+                            """
+
+                        result =
+                            Decode.decodeString Dataset.datasetDecoder jsonString
+
+                        values =
+                            [ 0, 1, 2, 3, 4, 5, 6, 7 ]
+
+                        x0 =
+                            dimValue "x0" 0
+
+                        x1 =
+                            dimValue "x1" 1
+
+                        y0 =
+                            dimValue "y0" 0
+
+                        y1 =
+                            dimValue "y1" 1
+
+                        z0 =
+                            dimValue "z0" 0
+
+                        z1 =
+                            dimValue "z1" 1
+
+                        x =
+                            { code = "x", text = "unknown", values = [ x0, x1 ] }
+
+                        y =
+                            { code = "y", text = "unknown", values = [ y0, y1 ] }
+
+                        z =
+                            { code = "z", text = "unknown", values = [ z0, z1 ] }
+
+                        dimensions =
+                            [ x, y, z ]
+                    in
+                    case result of
+                        Ok data ->
+                            Expect.all
+                                [ \d -> Expect.equalLists d.values values
+                                , \d -> Expect.equalLists d.dimensions dimensions
+                                , \d -> Expect.equal (Dataset.access1 x x0 d) Nothing
+                                ]
+                                data
+
+                        Err e ->
+                            Expect.fail (Debug.toString e)
             ]
         ]
+
+
+dimValue s n =
+    { value = s, valueText = "", index = n }

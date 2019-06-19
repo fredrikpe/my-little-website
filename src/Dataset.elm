@@ -1,10 +1,11 @@
-module Dataset exposing (Config, Dataset, DimValue, Dimension, Query, Tree(..), addLeafConfig, addSubTree, blankQuery, categoryConstructor, datasetDecoder, dimValueConstructor, dimensionDecoder, getDataset, getLeafConfig, getTree, helper001, helper002, leafConfigDecoder, leafConstructor, leafDecoder, partialDimensionDecoder, queryEncoder, queryToString, setHidden, ssbTreesUrl, subListDecoder, treeDecoder, treeListDecoder)
+module Dataset exposing (Config, Dataset, DimValue, Dimension, Query, Tree(..), access, access1, accessFirstDim, addLeafConfig, addSubTree, blankQuery, categoryConstructor, datasetDecoder, datasetSize, dimValueConstructor, dimensionDecoder, dimensionSize, getDataset, getLeafConfig, getTree, helper001, helper002, leafConfigDecoder, leafConstructor, leafDecoder, partialDimensionDecoder, queryEncoder, queryToString, setHidden, ssbTreesUrl, subListDecoder, treeDecoder, treeListDecoder)
 
 import Http
 import HttpUtil
 import Json.Decode as Decode
 import Json.Encode as Encode
 import Task
+import Util
 
 
 ssbTreesUrl =
@@ -34,6 +35,61 @@ type alias DimValue =
 
 type alias Dataset =
     { dimensions : List Dimension, values : List Float }
+
+
+dimensionSize dimension =
+    List.length dimension.values
+
+
+datasetSize dataset =
+    List.length dataset.values
+
+
+access : List ( Dimension, Int ) -> Dataset -> Maybe Dataset
+access ds dataset =
+    Nothing
+
+
+access1 : Dimension -> DimValue -> Dataset -> Maybe Dataset
+access1 dim n dataset =
+    if not (Util.contains dim dataset.dimensions) then
+        Nothing
+
+    else
+        Nothing
+
+
+accessFirstDim : Dimension -> DimValue -> Dataset -> Maybe Dataset
+accessFirstDim dimension value dataset =
+    let
+        mtail =
+            List.tail dataset.dimensions
+
+        mindex =
+            Util.indexOf value dimension.values
+
+        sliceSize =
+            datasetSize dataset // dimensionSize dimension
+    in
+    case mtail of
+        Nothing ->
+            Nothing
+
+        Just tail ->
+            case mindex of
+                Nothing ->
+                    Nothing
+
+                Just index ->
+                    Just
+                        { dataset
+                            | dimensions = tail
+                            , values =
+                                Util.slice
+                                    (index * sliceSize)
+                                    ((index + 1) * sliceSize)
+                                    dataset.values
+                        }
 
 
 categoryConstructor id text subTree =
