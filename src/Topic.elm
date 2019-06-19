@@ -1,4 +1,4 @@
-module Topic exposing (Config, DatasetData, DatasetQuery, DimValue, Dimension, Topic(..), addDatasetConfig, addSubTopics, blankQuery, datasetConfigDecoder, datasetConstructor, datasetDataDecoder, datasetDecoder, dimValueConstructor, dimensionDecoder, getData, getDatasetConfig, getTopics, helper001, helper002, listConstructor, partialDimensionDecoder, queryEncoder, queryToString, setHidden, ssbTopicsUrl, subListDecoder, topicDecoder, topicListDecoder)
+module Topic exposing (Config, DatasetData, Query, DimValue, Dimension, Topic(..), addDatasetConfig, addSubTopics, blankQuery, datasetConfigDecoder, datasetConstructor, datasetDataDecoder, datasetDecoder, dimValueConstructor, dimensionDecoder, getData, getDatasetConfig, getTopics, helper001, helper002, listConstructor, partialDimensionDecoder, queryEncoder, queryToString, setHidden, ssbTopicsUrl, subListDecoder, topicDecoder, topicListDecoder)
 
 import Http
 import HttpUtil
@@ -11,12 +11,12 @@ ssbTopicsUrl =
     "http://data.ssb.no/api/v0/en/table/"
 
 
-type Topic
-    = TopicList { id : String, text : String, subTopics : List Topic, isHidden : Bool }
-    | Dataset { id : String, text : String, config : Maybe Config, isHidden : Bool }
+type DatasetTree
+    = Category { id : String, text : String, subTopics : List DatasetTree, isHidden : Bool }
+    | Leaf { id : String, text : String, config : Maybe Config, isHidden : Bool }
 
 
-type alias DatasetQuery =
+type alias Query =
     { id : String, dimensions : List Dimension }
 
 
@@ -37,11 +37,11 @@ type alias DatasetData =
 
 
 listConstructor id text subTopics =
-    TopicList { id = id, text = text, subTopics = subTopics, isHidden = False }
+    Category { id = id, text = text, subTopics = subTopics, isHidden = False }
 
 
-datasetConstructor id text =
-    Dataset { id = id, text = text, config = Nothing, isHidden = False }
+leafConstructor id text =
+    Leaf { id = id, text = text, config = Nothing, isHidden = False }
 
 
 dimValueConstructor value valueText =
@@ -58,7 +58,7 @@ getDatasetConfig id =
     HttpUtil.httpGetFromJson (ssbTopicsUrl ++ id) datasetConfigDecoder
 
 
-getData : DatasetQuery -> Task.Task Http.Error DatasetData
+getData : Query -> Task.Task Http.Error DatasetData
 getData query =
     HttpUtil.httpPostFromJson (ssbTopicsUrl ++ query.id) (queryEncoder query) datasetDataDecoder
 
@@ -66,12 +66,12 @@ getData query =
 addSubTopics : List Topic -> String -> Topic -> Topic
 addSubTopics subTopics id topic =
     case topic of
-        TopicList list ->
+        Category list ->
             if list.id == id then
-                TopicList { list | subTopics = subTopics }
+                Category { list | subTopics = subTopics }
 
             else
-                TopicList { list | subTopics = List.map (addSubTopics subTopics id) list.subTopics }
+                Category { list | subTopics = List.map (addSubTopics subTopics id) list.subTopics }
 
         _ ->
             topic
@@ -80,10 +80,10 @@ addSubTopics subTopics id topic =
 addDatasetConfig : Config -> String -> Topic -> Topic
 addDatasetConfig config id topic =
     case topic of
-        TopicList list ->
-            TopicList { list | subTopics = List.map (addDatasetConfig config id) list.subTopics }
+        Category list ->
+            Category { list | subTopics = List.map (addDatasetConfig config id) list.subTopics }
 
-        Dataset dataset ->
+         dataset ->
             if dataset.id == id then
                 Dataset { dataset | config = Just config, isHidden = False }
 
@@ -93,21 +93,21 @@ addDatasetConfig config id topic =
 
 setHidden : Bool -> String -> Topic -> Topic
 setHidden bool id topic =
-    case topic of
-        TopicList list ->
+    case tree of
+        Category list ->
             if list.id == id then
-                TopicList { list | isHidden = bool }
+                Category { list | isHidden = bool }
 
             else
-                TopicList
+                Category
                     { list | subTopics = List.map (setHidden bool id) list.subTopics }
 
-        Dataset dataset ->
-            if dataset.id == id then
-                Dataset { dataset | isHidden = bool }
+        Leaf dataset ->
+            if Leaf.id == id then
+                Leaf { dataset | isHidden = bool }
 
             else
-                Dataset { dataset | isHidden = True }
+                Leaf { dataset | isHidden = True }
 
 
 topicListDecoder id =
@@ -221,7 +221,7 @@ helper002 keyValueList values =
     }
 
 
-queryEncoder : DatasetQuery -> Encode.Value
+queryEncoder : Query -> Encode.Value
 queryEncoder query =
     Encode.object
         [ ( "query"
@@ -253,6 +253,8 @@ queryToString query =
     Encode.encode 4 (queryEncoder query)
 
 
-blankQuery : String -> Config -> DatasetQuery
+blankQuery : String -> Config -> Query
 blankQuery id config =
     { id = id, dimensions = List.map (\v -> { v | values = [] }) config.dimensions }
+
+
