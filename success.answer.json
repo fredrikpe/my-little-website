@@ -1,0 +1,76 @@
+{
+    "class": "dataset",
+    "dimension": {
+        "Adopsjonstype": {
+            "category": {
+                "index": {
+                    "00": 0,
+                    "01": 1
+                },
+                "label": {
+                    "00": "Intercontry adoptions",
+                    "01": "Stepchildren"
+                }
+            },
+            "label": "type of adoption"
+        },
+        "ContentsCode": {
+            "category": {
+                "index": {
+                    "Adopsjoner": 0
+                },
+                "label": {
+                    "Adopsjoner": "Adoptions"
+                },
+                "unit": {
+                    "Adopsjoner": {
+                        "base": "adoptions",
+                        "decimals": 0
+                    }
+                }
+            },
+            "label": "contents"
+        },
+        "Tid": {
+            "category": {
+                "index": {
+                    "1986": 0,
+                    "1987": 1
+                },
+                "label": {
+                    "1986": "1986",
+                    "1987": "1987"
+                }
+            },
+            "label": "year"
+        }
+    },
+    "id": [
+        "Adopsjonstype",
+        "ContentsCode",
+        "Tid"
+    ],
+    "label": "06683: Adoptions, by type of adoption, contents and year",
+    "role": {
+        "metric": [
+            "ContentsCode"
+        ],
+        "time": [
+            "Tid"
+        ]
+    },
+    "size": [
+        2,
+        1,
+        2
+    ],
+    "source": "Statistics Norway",
+    "updated": "2019-05-31T06:00:00Z",
+    "value": [
+        477,
+        465,
+        262,
+        231
+    ],
+    "version": "2.0"
+}

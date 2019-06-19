@@ -1,4 +1,4 @@
-module Topic exposing (Config, DatasetData, DatasetQuery, Topic(..), Variable, addDatasetConfig, addSubTopics, blankQuery, datasetConfigDecoder, datasetConstructor, datasetDataDecoder, datasetDecoder, getData, getDatasetConfig, getTopics, listConstructor, queryEncoder, queryToString, setHidden, ssbTopicsUrl, subListDecoder, topicDecoder, topicListDecoder, variableDecoder)
+module Topic exposing (Config, DatasetData, DatasetQuery, DimValue, Dimension, Topic(..), addDatasetConfig, addSubTopics, blankQuery, datasetConfigDecoder, datasetConstructor, datasetDataDecoder, datasetDecoder, dimValueConstructor, dimensionDecoder, getData, getDatasetConfig, getTopics, helper001, helper002, listConstructor, partialDimensionDecoder, queryEncoder, queryToString, setHidden, ssbTopicsUrl, subListDecoder, topicDecoder, topicListDecoder)
 
 import Http
 import HttpUtil
@@ -17,19 +17,23 @@ type Topic
 
 
 type alias DatasetQuery =
-    { id : String, variables : List Variable }
+    { id : String, dimensions : List Dimension }
 
 
 type alias Config =
-    { title : String, variables : List Variable }
+    { title : String, dimensions : List Dimension }
 
 
-type alias Variable =
-    { code : String, text : String, values : List ( String, String ) }
+type alias Dimension =
+    { code : String, text : String, values : List DimValue }
+
+
+type alias DimValue =
+    { value : String, valueText : String, index : Int }
 
 
 type alias DatasetData =
-    { dummy : String }
+    { dimensions : List Dimension, values : List Float }
 
 
 listConstructor id text subTopics =
@@ -38,6 +42,10 @@ listConstructor id text subTopics =
 
 datasetConstructor id text =
     Dataset { id = id, text = text, config = Nothing, isHidden = False }
+
+
+dimValueConstructor value valueText =
+    { value = value, valueText = valueText, index = -1 }
 
 
 getTopics : String -> Task.Task Http.Error (List Topic)
@@ -81,10 +89,6 @@ addDatasetConfig config id topic =
 
             else
                 topic
-
-
-
---setAllHidden : Bool -> String -> Topic -> Topic
 
 
 setHidden : Bool -> String -> Topic -> Topic
@@ -156,24 +160,71 @@ datasetConfigDecoder : Decode.Decoder Config
 datasetConfigDecoder =
     Decode.map2 Config
         (Decode.field "title" Decode.string)
-        (Decode.field "variables" (Decode.list variableDecoder))
+        (Decode.field "variables" (Decode.list dimensionDecoder))
 
 
-variableDecoder : Decode.Decoder Variable
-variableDecoder =
-    Decode.map3 Variable
+dimensionDecoder : Decode.Decoder Dimension
+dimensionDecoder =
+    Decode.map3 Dimension
         (Decode.field "code" Decode.string)
         (Decode.field "text" Decode.string)
         (Decode.map2
-            (List.map2 Tuple.pair)
+            (List.map2 dimValueConstructor)
             (Decode.field "values" (Decode.list Decode.string))
             (Decode.field "valueTexts" (Decode.list Decode.string))
         )
 
 
+partialDimensionDecoder : Decode.Decoder (List DimValue)
+partialDimensionDecoder =
+    Decode.field "category"
+        (Decode.map2
+            helper001
+            (Decode.field "index" (Decode.keyValuePairs Decode.int))
+            (Decode.field "label" (Decode.keyValuePairs Decode.string))
+        )
+
+
+helper001 : List ( String, Int ) -> List ( String, String ) -> List DimValue
+helper001 index label =
+    let
+        values =
+            List.map (\l -> { value = Tuple.first l, valueText = Tuple.second l, index = -1 }) label
+    in
+    List.map
+        (\d ->
+            let
+                found =
+                    List.head (List.filter (\t -> Tuple.first t == d.value) index)
+            in
+            case found of
+                Just f ->
+                    { d | index = Tuple.second f }
+
+                Nothing ->
+                    d
+        )
+        values
+
+
+
+--datasetDataDecoder : Decode.Decoder a
+--datasetDataDecoder =
+--Decode.fail "Not implemented error!"
+
+
 datasetDataDecoder : Decode.Decoder DatasetData
 datasetDataDecoder =
-    Decode.map DatasetData Decode.string
+    Decode.map2 helper002
+        (Decode.field "dimension" (Decode.keyValuePairs partialDimensionDecoder))
+        (Decode.field "value" (Decode.list Decode.float))
+
+
+helper002 : List ( String, List DimValue ) -> List Float -> DatasetData
+helper002 keyValueList values =
+    { values = values
+    , dimensions = List.map (\t -> { code = Tuple.first t, text = "unknown", values = Tuple.second t }) keyValueList
+    }
 
 
 queryEncoder : DatasetQuery -> Encode.Value
@@ -190,7 +241,7 @@ queryEncoder query =
                                 , ( "values"
                                   , Encode.list
                                         (\x ->
-                                            Encode.string (Tuple.first x)
+                                            Encode.string x.value
                                         )
                                         v.values
                                   )
@@ -198,7 +249,7 @@ queryEncoder query =
                           )
                         ]
                 )
-                query.variables
+                query.dimensions
           )
         , ( "response", Encode.object [ ( "format", Encode.string "json-stat2" ) ] )
         ]
@@ -210,4 +261,4 @@ queryToString query =
 
 blankQuery : String -> Config -> DatasetQuery
 blankQuery id config =
-    { id = id, variables = List.map (\v -> { v | values = [] }) config.variables }
+    { id = id, dimensions = List.map (\v -> { v | values = [] }) config.dimensions }

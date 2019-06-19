@@ -5980,15 +5980,15 @@ var author$project$Topic$addDatasetConfig = F3(
 var author$project$Topic$blankQuery = F2(
 	function (id, config) {
 		return {
-			id: id,
-			variables: A2(
+			dimensions: A2(
 				elm$core$List$map,
 				function (v) {
 					return _Utils_update(
 						v,
 						{values: _List_Nil});
 				},
-				config.variables)
+				config.dimensions),
+			id: id
 		};
 	});
 var author$project$HttpUtil$corsAnywhere = 'https://cors-anywhere.herokuapp.com/';
@@ -6014,7 +6014,10 @@ var author$project$HttpUtil$httpPostFromJson = F3(
 var author$project$Topic$DatasetData = function (dummy) {
 	return {dummy: dummy};
 };
-var author$project$Topic$datasetDataDecoder = A2(elm$json$Json$Decode$map, author$project$Topic$DatasetData, elm$json$Json$Decode$string);
+var author$project$Topic$datasetDataDecoder = A2(
+	elm$json$Json$Decode$map,
+	author$project$Topic$DatasetData,
+	A2(elm$json$Json$Decode$field, 'dimension', elm$json$Json$Decode$string));
 var elm$json$Json$Encode$list = F2(
 	function (func, entries) {
 		return _Json_wrap(
@@ -6066,13 +6069,13 @@ var author$project$Topic$queryEncoder = function (query) {
 												A2(
 													elm$json$Json$Encode$list,
 													function (x) {
-														return elm$json$Json$Encode$string(x.a);
+														return elm$json$Json$Encode$string(x.value);
 													},
 													v.values))
 											])))
 								]));
 					},
-					query.variables)),
+					query.dimensions)),
 				_Utils_Tuple2(
 				'response',
 				elm$json$Json$Encode$object(
@@ -6092,25 +6095,28 @@ var author$project$Topic$getData = function (query) {
 		author$project$Topic$datasetDataDecoder);
 };
 var author$project$Topic$Config = F2(
-	function (title, variables) {
-		return {title: title, variables: variables};
+	function (title, dimensions) {
+		return {dimensions: dimensions, title: title};
 	});
-var author$project$Topic$Variable = F3(
+var author$project$Topic$Dimension = F3(
 	function (code, text, values) {
 		return {code: code, text: text, values: values};
 	});
-var elm$core$Tuple$pair = F2(
-	function (a, b) {
-		return _Utils_Tuple2(a, b);
+var elm$core$Basics$negate = function (n) {
+	return -n;
+};
+var author$project$Topic$dimValueConstructor = F2(
+	function (value, valueText) {
+		return {index: -1, value: value, valueText: valueText};
 	});
-var author$project$Topic$variableDecoder = A4(
+var author$project$Topic$dimensionDecoder = A4(
 	elm$json$Json$Decode$map3,
-	author$project$Topic$Variable,
+	author$project$Topic$Dimension,
 	A2(elm$json$Json$Decode$field, 'code', elm$json$Json$Decode$string),
 	A2(elm$json$Json$Decode$field, 'text', elm$json$Json$Decode$string),
 	A3(
 		elm$json$Json$Decode$map2,
-		elm$core$List$map2(elm$core$Tuple$pair),
+		elm$core$List$map2(author$project$Topic$dimValueConstructor),
 		A2(
 			elm$json$Json$Decode$field,
 			'values',
@@ -6126,7 +6132,7 @@ var author$project$Topic$datasetConfigDecoder = A3(
 	A2(
 		elm$json$Json$Decode$field,
 		'variables',
-		elm$json$Json$Decode$list(author$project$Topic$variableDecoder)));
+		elm$json$Json$Decode$list(author$project$Topic$dimensionDecoder)));
 var author$project$Topic$getDatasetConfig = function (id) {
 	return A2(
 		author$project$HttpUtil$httpGetFromJson,
@@ -6209,25 +6215,25 @@ var author$project$Main$handleDatasetMsg = F2(
 							elm$core$Debug$toString(e)),
 						elm$core$Platform$Cmd$none);
 				}
-			case 'DSetQueryVariable':
-				var variable = msg.a;
+			case 'DSetQueryDimension':
+				var dimension = msg.a;
 				var _n3 = model.query;
 				if (_n3.$ === 'Just') {
 					var q = _n3.a;
-					var vs = A3(
+					var dims = A3(
 						author$project$Util$replaceIf,
-						function (v) {
-							return _Utils_eq(v.code, variable.code);
+						function (d) {
+							return _Utils_eq(d.code, dimension.code);
 						},
-						variable,
-						q.variables);
+						dimension,
+						q.dimensions);
 					return _Utils_Tuple2(
 						A2(
 							author$project$Main$setQuery,
 							elm$core$Maybe$Just(
 								_Utils_update(
 									q,
-									{variables: vs})),
+									{dimensions: dims})),
 							model),
 						elm$core$Platform$Cmd$none);
 				} else {
@@ -6330,6 +6336,21 @@ var author$project$Main$update = F2(
 								A2(elm$core$String$join, '', s))
 						}),
 					elm$core$Platform$Cmd$none);
+			case 'ShowQuery':
+				var _n1 = model.query;
+				if (_n1.$ === 'Just') {
+					var q = _n1.a;
+					return _Utils_Tuple2(
+						_Utils_update(
+							model,
+							{
+								errorMsg: elm$core$Maybe$Just(
+									author$project$Topic$queryToString(q))
+							}),
+						elm$core$Platform$Cmd$none);
+				} else {
+					return _Utils_Tuple2(model, elm$core$Platform$Cmd$none);
+				}
 			case 'GetTopics':
 				return _Utils_Tuple2(
 					author$project$Main$setLoading(model),
@@ -6401,7 +6422,7 @@ var author$project$Main$update = F2(
 		}
 	});
 var author$project$Main$GetTopics = {$: 'GetTopics'};
-var author$project$Main$DGetData = {$: 'DGetData'};
+var author$project$Main$ShowQuery = {$: 'ShowQuery'};
 var abadi199$elm_input_extra$MultiSelect$Option = F3(
 	function (value, text, selected) {
 		return {selected: selected, text: text, value: value};
@@ -6611,69 +6632,58 @@ var abadi199$elm_input_extra$MultiSelect$multiSelect = F3(
 var abadi199$elm_input_extra$MultiSelect$defaultOptions = function (onChangeHandler) {
 	return {items: _List_Nil, onChange: onChangeHandler};
 };
-var author$project$Main$DSetQueryVariable = function (a) {
-	return {$: 'DSetQueryVariable', a: a};
+var author$project$Main$DSetQueryDimension = function (a) {
+	return {$: 'DSetQueryDimension', a: a};
 };
-var elm$core$List$repeatHelp = F3(
-	function (result, n, value) {
-		repeatHelp:
-		while (true) {
-			if (n <= 0) {
-				return result;
-			} else {
-				var $temp$result = A2(elm$core$List$cons, value, result),
-					$temp$n = n - 1,
-					$temp$value = value;
-				result = $temp$result;
-				n = $temp$n;
-				value = $temp$value;
-				continue repeatHelp;
-			}
-		}
-	});
-var elm$core$List$repeat = F2(
-	function (n, value) {
-		return A3(elm$core$List$repeatHelp, _List_Nil, n, value);
+var author$project$Util$any = F2(
+	function (predicate, list) {
+		return A3(
+			elm$core$List$foldl,
+			F2(
+				function (a, b) {
+					return b || predicate(a);
+				}),
+			false,
+			list);
 	});
 var author$project$Main$onQueryChange = F2(
-	function (variable, s) {
+	function (dimension, s) {
 		return author$project$Main$DatasetMessage(
-			author$project$Main$DSetQueryVariable(
+			author$project$Main$DSetQueryDimension(
 				_Utils_update(
-					variable,
+					dimension,
 					{
-						values: A3(
-							elm$core$List$map2,
-							elm$core$Tuple$pair,
-							s,
-							A2(
-								elm$core$List$repeat,
-								elm$core$List$length(s),
-								''))
+						values: A2(
+							elm$core$List$filter,
+							function (v) {
+								return A2(
+									author$project$Util$any,
+									function (x) {
+										return _Utils_eq(x, v.value);
+									},
+									s);
+							},
+							dimension.values)
 					})));
 	});
-var elm$core$Tuple$second = function (_n0) {
-	var y = _n0.b;
-	return y;
-};
-var author$project$Main$querySelectOptions = function (variable) {
+var author$project$Main$querySelectOptions = function (dimension) {
 	var defaultOptions = abadi199$elm_input_extra$MultiSelect$defaultOptions(
-		author$project$Main$onQueryChange(variable));
+		author$project$Main$onQueryChange(dimension));
 	return _Utils_update(
 		defaultOptions,
 		{
 			items: A2(
 				elm$core$List$map,
 				function (v) {
-					return {enabled: true, text: v.b, value: v.a};
+					return {enabled: true, text: v.valueText, value: v.value};
 				},
-				variable.values)
+				dimension.values)
 		});
 };
-var author$project$Main$variableHtml = function (variable) {
+var author$project$Main$dimensionHtml = function (dimension) {
 	return A3(
 		abadi199$elm_input_extra$MultiSelect$multiSelect,
-		author$project$Main$querySelectOptions(variable),
+		author$project$Main$querySelectOptions(dimension),
 		_List_Nil,
 		_List_Nil);
 };
@@ -6699,17 +6709,16 @@ var author$project$Main$configHtml = function (config) {
 				A2(
 					elm$core$List$map,
 					function (v) {
-						return author$project$Main$variableHtml(v);
+						return author$project$Main$dimensionHtml(v);
 					},
-					c.variables),
+					c.dimensions),
 				_List_fromArray(
 					[
 						A2(
 						elm$html$Html$button,
 						_List_fromArray(
 							[
-								elm$html$Html$Events$onClick(
-								author$project$Main$DatasetMessage(author$project$Main$DGetData))
+								elm$html$Html$Events$onClick(author$project$Main$ShowQuery)
 							]),
 						_List_fromArray(
 							[

@@ -2,7 +2,7 @@
 --https://discourse.elm-lang.org/t/using-task-to-send-http-requests/2696/5
 
 
-module Main exposing (DatasetMsg(..), Model, Msg(..), configHtml, datasetOnClick, errorModel, handleDatasetMsg, hide, init, main, notLoading, onQueryChange, querySelectOptions, setLoading, setQuery, show, topicHtml, topicListOnClick, update, updateTopic, updateTopics, variableHtml, view, viewTopics)
+module Main exposing (DatasetMsg(..), Model, Msg(..), configHtml, datasetOnClick, errorModel, handleDatasetMsg, hide, init, main, notLoading, onQueryChange, querySelectOptions, setLoading, setQuery, show, topicHtml, topicListOnClick, update, updateTopic, updateTopics, view, viewTopics)
 
 import Browser
 import Html
@@ -79,7 +79,7 @@ type DatasetMsg
     | DHide String
     | DGetConfig String
     | DGotConfig String (Result Http.Error Config)
-    | DSetQueryVariable Variable
+    | DSetQueryDimension Dimension
     | DShowGraph
     | DGetData
     | DGotData (Result Http.Error DatasetData)
@@ -88,6 +88,7 @@ type DatasetMsg
 type Msg
     = Pass
     | ShowStrings (List String)
+    | ShowQuery
     | GetTopics
     | GetSubTopics String
     | DatasetMessage DatasetMsg
@@ -105,6 +106,14 @@ update msg model =
 
         ShowStrings s ->
             ( { model | errorMsg = Just (String.join "" s) }, Cmd.none )
+
+        ShowQuery ->
+            case model.query of
+                Just q ->
+                    ( { model | errorMsg = Just (queryToString q) }, Cmd.none )
+
+                Nothing ->
+                    ( model, Cmd.none )
 
         GetTopics ->
             ( setLoading model, Task.attempt GotMainTopics (getTopics "") )
@@ -169,19 +178,19 @@ handleDatasetMsg msg model =
                 Err e ->
                     ( errorModel (Debug.toString e), Cmd.none )
 
-        DSetQueryVariable variable ->
+        DSetQueryDimension dimension ->
             case model.query of
                 Just q ->
                     let
-                        vs =
+                        dims =
                             Util.replaceIf
-                                (\v ->
-                                    v.code == variable.code
+                                (\d ->
+                                    d.code == dimension.code
                                 )
-                                variable
-                                q.variables
+                                dimension
+                                q.dimensions
                     in
-                    ( setQuery (Just { q | variables = vs }) model, Cmd.none )
+                    ( setQuery (Just { q | dimensions = dims }) model, Cmd.none )
 
                 Nothing ->
                     ( errorModel "Query was Nothing when it shouldn't have been!", Cmd.none )
@@ -270,9 +279,9 @@ configHtml config =
     case config of
         Just c ->
             Html.div [ Html.Attributes.class "view__config_div" ]
-                (List.map (\v -> variableHtml v) c.variables
+                (List.map (\v -> dimensionHtml v) c.dimensions
                     ++ [ Html.button
-                            [ Html.Events.onClick (DatasetMessage DGetData) ]
+                            [ Html.Events.onClick ShowQuery ]
                             [ Html.text "Show graph" ]
                        ]
                 )
@@ -281,34 +290,34 @@ configHtml config =
             Html.text ""
 
 
-querySelectOptions : Variable -> MultiSelect.Options Msg
-querySelectOptions variable =
+querySelectOptions : Dimension -> MultiSelect.Options Msg
+querySelectOptions dimension =
     let
         defaultOptions =
-            MultiSelect.defaultOptions (onQueryChange variable)
+            MultiSelect.defaultOptions (onQueryChange dimension)
     in
     { defaultOptions
         | items =
             List.map
                 (\v ->
-                    { value = Tuple.first v, text = Tuple.second v, enabled = True }
+                    { value = v.value, text = v.valueText, enabled = True }
                 )
-                variable.values
+                dimension.values
     }
 
 
-variableHtml variable =
-    MultiSelect.multiSelect (querySelectOptions variable)
+dimensionHtml dimension =
+    MultiSelect.multiSelect (querySelectOptions dimension)
         []
         []
 
 
-onQueryChange : Variable -> List String -> Msg
-onQueryChange variable s =
+onQueryChange : Dimension -> List String -> Msg
+onQueryChange dimension s =
     DatasetMessage
-        (DSetQueryVariable
-            { variable
-                | values = List.map2 Tuple.pair s (List.repeat (List.length s) "")
+        (DSetQueryDimension
+            { dimension
+                | values = List.filter (\v -> Util.any (\x -> x == v.value) s) dimension.values
             }
         )
 
