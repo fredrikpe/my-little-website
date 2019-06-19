@@ -1,4 +1,4 @@
-module Topic exposing (Config, DatasetData, Query, DimValue, Dimension, Topic(..), addDatasetConfig, addSubTopics, blankQuery, datasetConfigDecoder, datasetConstructor, datasetDataDecoder, datasetDecoder, dimValueConstructor, dimensionDecoder, getData, getDatasetConfig, getTopics, helper001, helper002, listConstructor, partialDimensionDecoder, queryEncoder, queryToString, setHidden, ssbTopicsUrl, subListDecoder, topicDecoder, topicListDecoder)
+module Dataset exposing (Config, Dataset, DimValue, Dimension, Query, Tree(..), addLeafConfig, addSubTree, blankQuery, categoryConstructor, datasetDecoder, dimValueConstructor, dimensionDecoder, getDataset, getLeafConfig, getTree, helper001, helper002, leafConfigDecoder, leafConstructor, leafDecoder, partialDimensionDecoder, queryEncoder, queryToString, setHidden, ssbTreesUrl, subListDecoder, treeDecoder, treeListDecoder)
 
 import Http
 import HttpUtil
@@ -7,12 +7,12 @@ import Json.Encode as Encode
 import Task
 
 
-ssbTopicsUrl =
+ssbTreesUrl =
     "http://data.ssb.no/api/v0/en/table/"
 
 
-type DatasetTree
-    = Category { id : String, text : String, subTopics : List DatasetTree, isHidden : Bool }
+type Tree
+    = Category { id : String, text : String, subTree : List Tree, isHidden : Bool }
     | Leaf { id : String, text : String, config : Maybe Config, isHidden : Bool }
 
 
@@ -32,12 +32,12 @@ type alias DimValue =
     { value : String, valueText : String, index : Int }
 
 
-type alias DatasetData =
+type alias Dataset =
     { dimensions : List Dimension, values : List Float }
 
 
-listConstructor id text subTopics =
-    Category { id = id, text = text, subTopics = subTopics, isHidden = False }
+categoryConstructor id text subTree =
+    Category { id = id, text = text, subTree = subTree, isHidden = False }
 
 
 leafConstructor id text =
@@ -48,51 +48,54 @@ dimValueConstructor value valueText =
     { value = value, valueText = valueText, index = -1 }
 
 
-getTopics : String -> Task.Task Http.Error (List Topic)
-getTopics id =
-    HttpUtil.httpGetFromJson (ssbTopicsUrl ++ id) (topicListDecoder id)
+getTree : String -> Task.Task Http.Error (List Tree)
+getTree id =
+    HttpUtil.httpGetFromJson (ssbTreesUrl ++ id) (treeListDecoder id)
 
 
-getDatasetConfig : String -> Task.Task Http.Error Config
-getDatasetConfig id =
-    HttpUtil.httpGetFromJson (ssbTopicsUrl ++ id) datasetConfigDecoder
+getLeafConfig : String -> Task.Task Http.Error Config
+getLeafConfig id =
+    HttpUtil.httpGetFromJson (ssbTreesUrl ++ id) leafConfigDecoder
 
 
-getData : Query -> Task.Task Http.Error DatasetData
-getData query =
-    HttpUtil.httpPostFromJson (ssbTopicsUrl ++ query.id) (queryEncoder query) datasetDataDecoder
+getDataset : Query -> Task.Task Http.Error Dataset
+getDataset query =
+    HttpUtil.httpPostFromJson
+        (ssbTreesUrl ++ query.id)
+        (queryEncoder query)
+        datasetDecoder
 
 
-addSubTopics : List Topic -> String -> Topic -> Topic
-addSubTopics subTopics id topic =
-    case topic of
+addSubTree : List Tree -> String -> Tree -> Tree
+addSubTree subTree id tree =
+    case tree of
         Category list ->
             if list.id == id then
-                Category { list | subTopics = subTopics }
+                Category { list | subTree = subTree }
 
             else
-                Category { list | subTopics = List.map (addSubTopics subTopics id) list.subTopics }
+                Category { list | subTree = List.map (addSubTree subTree id) list.subTree }
 
         _ ->
-            topic
+            tree
 
 
-addDatasetConfig : Config -> String -> Topic -> Topic
-addDatasetConfig config id topic =
-    case topic of
+addLeafConfig : Config -> String -> Tree -> Tree
+addLeafConfig config id tree =
+    case tree of
         Category list ->
-            Category { list | subTopics = List.map (addDatasetConfig config id) list.subTopics }
+            Category { list | subTree = List.map (addLeafConfig config id) list.subTree }
 
-         dataset ->
-            if dataset.id == id then
-                Dataset { dataset | config = Just config, isHidden = False }
+        Leaf leaf ->
+            if leaf.id == id then
+                Leaf { leaf | config = Just config, isHidden = False }
 
             else
-                topic
+                tree
 
 
-setHidden : Bool -> String -> Topic -> Topic
-setHidden bool id topic =
+setHidden : Bool -> String -> Tree -> Tree
+setHidden bool id tree =
     case tree of
         Category list ->
             if list.id == id then
@@ -100,21 +103,21 @@ setHidden bool id topic =
 
             else
                 Category
-                    { list | subTopics = List.map (setHidden bool id) list.subTopics }
+                    { list | subTree = List.map (setHidden bool id) list.subTree }
 
-        Leaf dataset ->
-            if Leaf.id == id then
-                Leaf { dataset | isHidden = bool }
+        Leaf leaf ->
+            if leaf.id == id then
+                Leaf { leaf | isHidden = bool }
 
             else
-                Leaf { dataset | isHidden = True }
+                Leaf { leaf | isHidden = True }
 
 
-topicListDecoder id =
-    Decode.list (topicDecoder id)
+treeListDecoder id =
+    Decode.list (treeDecoder id)
 
 
-topicDecoder id =
+treeDecoder id =
     Decode.field "type" Decode.string
         |> Decode.andThen
             (\t ->
@@ -123,16 +126,16 @@ topicDecoder id =
                         subListDecoder id
 
                     "t" ->
-                        datasetDecoder
+                        leafDecoder
 
                     _ ->
                         Decode.fail "Couldn't decode error"
             )
 
 
-datasetDecoder : Decode.Decoder Topic
-datasetDecoder =
-    Decode.map2 datasetConstructor
+leafDecoder : Decode.Decoder Tree
+leafDecoder =
+    Decode.map2 leafConstructor
         (Decode.map
             (\s -> Maybe.withDefault "UNKNOWN" (List.head (String.split ":" s)))
             (Decode.field
@@ -143,9 +146,9 @@ datasetDecoder =
         (Decode.field "text" Decode.string)
 
 
-subListDecoder : String -> Decode.Decoder Topic
+subListDecoder : String -> Decode.Decoder Tree
 subListDecoder id =
-    Decode.map3 listConstructor
+    Decode.map3 categoryConstructor
         (Decode.map (\s -> id ++ "/" ++ s)
             (Decode.field
                 "id"
@@ -156,8 +159,8 @@ subListDecoder id =
         (Decode.succeed [])
 
 
-datasetConfigDecoder : Decode.Decoder Config
-datasetConfigDecoder =
+leafConfigDecoder : Decode.Decoder Config
+leafConfigDecoder =
     Decode.map2 Config
         (Decode.field "title" Decode.string)
         (Decode.field "variables" (Decode.list dimensionDecoder))
@@ -207,14 +210,14 @@ helper001 index label =
         values
 
 
-datasetDataDecoder : Decode.Decoder DatasetData
-datasetDataDecoder =
+datasetDecoder : Decode.Decoder Dataset
+datasetDecoder =
     Decode.map2 helper002
         (Decode.field "dimension" (Decode.keyValuePairs partialDimensionDecoder))
         (Decode.field "value" (Decode.list Decode.float))
 
 
-helper002 : List ( String, List DimValue ) -> List Float -> DatasetData
+helper002 : List ( String, List DimValue ) -> List Float -> Dataset
 helper002 keyValueList values =
     { values = values
     , dimensions = List.map (\t -> { code = Tuple.first t, text = "unknown", values = Tuple.second t }) keyValueList
@@ -256,5 +259,3 @@ queryToString query =
 blankQuery : String -> Config -> Query
 blankQuery id config =
     { id = id, dimensions = List.map (\v -> { v | values = [] }) config.dimensions }
-
-
