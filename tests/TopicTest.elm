@@ -1,4 +1,4 @@
-module Example exposing (suite)
+module TopicTest exposing (suite)
 
 import Expect exposing (Expectation)
 import Fuzz exposing (Fuzzer, int, list, string)
@@ -11,25 +11,11 @@ import Util
 suite : Test
 suite =
     describe "The Topic module"
-        [ describe "examples"
-            [ test "has no effect on a palindrome" <|
-                \_ ->
-                    Expect.equal True True
-
-            -- fuzz runs the test 100 times with randomly-generated inputs!
-            , fuzz string "restores the original string if you run it again" <|
-                \randomlyGeneratedString ->
-                    randomlyGeneratedString
-                        |> String.reverse
-                        |> String.reverse
-                        |> Expect.equal randomlyGeneratedString
-            ]
-        , describe "Decoders"
+        [ describe "Decoders"
             [ test "partialDimensionDecoder" <|
                 \_ ->
                     let
                         jsonString =
-                            --"Adopsjonstype": {
                             """
                             { "category": {
                                     "index": {
@@ -63,7 +49,6 @@ suite =
                 \_ ->
                     let
                         jsonString =
-                            --"Adopsjonstype": {
                             """
                             {
                                 "class": "dataset",
@@ -148,10 +133,36 @@ suite =
 
                         expectedValues =
                             [ 477, 465, 262, 231 ]
+
+                        expectedDimensions =
+                            [ { code = "Adopsjonstype"
+                              , text = "unknown"
+                              , values =
+                                    [ { value = "00", valueText = "Intercontry adoptions", index = 0 }
+                                    , { value = "01", valueText = "Stepchildren", index = 1 }
+                                    ]
+                              }
+                            , { code = "ContentsCode"
+                              , text = "unknown"
+                              , values =
+                                    [ { value = "Adopsjoner", valueText = "Adoptions", index = 0 } ]
+                              }
+                            , { code = "Tid"
+                              , text = "unknown"
+                              , values =
+                                    [ { value = "1986", valueText = "1986", index = 0 }
+                                    , { value = "1987", valueText = "1987", index = 1 }
+                                    ]
+                              }
+                            ]
                     in
                     case result of
                         Ok data ->
-                            Expect.equalLists data.values expectedValues
+                            Expect.all
+                                [ \s -> Expect.equalLists s.values expectedValues
+                                , \s -> Expect.equalLists s.dimensions expectedDimensions
+                                ]
+                                data
 
                         Err _ ->
                             Expect.fail "Result was err"
