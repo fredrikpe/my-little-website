@@ -173,7 +173,7 @@ handleDatasetMsg msg model =
         DGotData result ->
             case result of
                 Ok data ->
-                    ( { model | errorMsg = Just data.dummy }, Cmd.none )
+                    ( notLoading { model | errorMsg = Just (Debug.toString data) }, Cmd.none )
 
                 Err e ->
                     ( errorModel (Debug.toString e), Cmd.none )
@@ -281,7 +281,7 @@ configHtml config =
             Html.div [ Html.Attributes.class "view__config_div" ]
                 (List.map (\v -> dimensionHtml v) c.dimensions
                     ++ [ Html.button
-                            [ Html.Events.onClick ShowQuery ]
+                            [ Html.Events.onClick (DatasetMessage DGetData) ]
                             [ Html.text "Show graph" ]
                        ]
                 )

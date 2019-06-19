@@ -207,12 +207,6 @@ helper001 index label =
         values
 
 
-
---datasetDataDecoder : Decode.Decoder a
---datasetDataDecoder =
---Decode.fail "Not implemented error!"
-
-
 datasetDataDecoder : Decode.Decoder DatasetData
 datasetDataDecoder =
     Decode.map2 helper002

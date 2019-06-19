@@ -6011,13 +6011,93 @@ var author$project$HttpUtil$httpPostFromJson = F3(
 				url: _Utils_ap(author$project$HttpUtil$corsAnywhere, url)
 			});
 	});
-var author$project$Topic$DatasetData = function (dummy) {
-	return {dummy: dummy};
+var elm$core$Tuple$second = function (_n0) {
+	var y = _n0.b;
+	return y;
 };
-var author$project$Topic$datasetDataDecoder = A2(
-	elm$json$Json$Decode$map,
-	author$project$Topic$DatasetData,
-	A2(elm$json$Json$Decode$field, 'dimension', elm$json$Json$Decode$string));
+var author$project$Topic$helper002 = F2(
+	function (keyValueList, values) {
+		return {
+			dimensions: A2(
+				elm$core$List$map,
+				function (t) {
+					return {code: t.a, text: 'unknown', values: t.b};
+				},
+				keyValueList),
+			values: values
+		};
+	});
+var elm$core$Basics$negate = function (n) {
+	return -n;
+};
+var elm$core$List$filter = F2(
+	function (isGood, list) {
+		return A3(
+			elm$core$List$foldr,
+			F2(
+				function (x, xs) {
+					return isGood(x) ? A2(elm$core$List$cons, x, xs) : xs;
+				}),
+			_List_Nil,
+			list);
+	});
+var author$project$Topic$helper001 = F2(
+	function (index, label) {
+		var values = A2(
+			elm$core$List$map,
+			function (l) {
+				return {index: -1, value: l.a, valueText: l.b};
+			},
+			label);
+		return A2(
+			elm$core$List$map,
+			function (d) {
+				var found = elm$core$List$head(
+					A2(
+						elm$core$List$filter,
+						function (t) {
+							return _Utils_eq(t.a, d.value);
+						},
+						index));
+				if (found.$ === 'Just') {
+					var f = found.a;
+					return _Utils_update(
+						d,
+						{index: f.b});
+				} else {
+					return d;
+				}
+			},
+			values);
+	});
+var elm$json$Json$Decode$int = _Json_decodeInt;
+var elm$json$Json$Decode$keyValuePairs = _Json_decodeKeyValuePairs;
+var author$project$Topic$partialDimensionDecoder = A2(
+	elm$json$Json$Decode$field,
+	'category',
+	A3(
+		elm$json$Json$Decode$map2,
+		author$project$Topic$helper001,
+		A2(
+			elm$json$Json$Decode$field,
+			'index',
+			elm$json$Json$Decode$keyValuePairs(elm$json$Json$Decode$int)),
+		A2(
+			elm$json$Json$Decode$field,
+			'label',
+			elm$json$Json$Decode$keyValuePairs(elm$json$Json$Decode$string))));
+var elm$json$Json$Decode$float = _Json_decodeFloat;
+var author$project$Topic$datasetDataDecoder = A3(
+	elm$json$Json$Decode$map2,
+	author$project$Topic$helper002,
+	A2(
+		elm$json$Json$Decode$field,
+		'dimension',
+		elm$json$Json$Decode$keyValuePairs(author$project$Topic$partialDimensionDecoder)),
+	A2(
+		elm$json$Json$Decode$field,
+		'value',
+		elm$json$Json$Decode$list(elm$json$Json$Decode$float)));
 var elm$json$Json$Encode$list = F2(
 	function (func, entries) {
 		return _Json_wrap(
@@ -6102,9 +6182,6 @@ var author$project$Topic$Dimension = F3(
 	function (code, text, values) {
 		return {code: code, text: text, values: values};
 	});
-var elm$core$Basics$negate = function (n) {
-	return -n;
-};
 var author$project$Topic$dimValueConstructor = F2(
 	function (value, valueText) {
 		return {index: -1, value: value, valueText: valueText};
@@ -6202,11 +6279,13 @@ var author$project$Main$handleDatasetMsg = F2(
 				if (result.$ === 'Ok') {
 					var data = result.a;
 					return _Utils_Tuple2(
-						_Utils_update(
-							model,
-							{
-								errorMsg: elm$core$Maybe$Just(data.dummy)
-							}),
+						author$project$Main$notLoading(
+							_Utils_update(
+								model,
+								{
+									errorMsg: elm$core$Maybe$Just(
+										elm$core$Debug$toString(data))
+								})),
 						elm$core$Platform$Cmd$none);
 				} else {
 					var e = result.a;
@@ -6422,7 +6501,7 @@ var author$project$Main$update = F2(
 		}
 	});
 var author$project$Main$GetTopics = {$: 'GetTopics'};
-var author$project$Main$ShowQuery = {$: 'ShowQuery'};
+var author$project$Main$DGetData = {$: 'DGetData'};
 var abadi199$elm_input_extra$MultiSelect$Option = F3(
 	function (value, text, selected) {
 		return {selected: selected, text: text, value: value};
@@ -6488,17 +6567,6 @@ var abadi199$elm_input_extra$MultiSelect$optionsDecoder = function () {
 			'options',
 			A2(loop, 0, _List_Nil)));
 }();
-var elm$core$List$filter = F2(
-	function (isGood, list) {
-		return A3(
-			elm$core$List$foldr,
-			F2(
-				function (x, xs) {
-					return isGood(x) ? A2(elm$core$List$cons, x, xs) : xs;
-				}),
-			_List_Nil,
-			list);
-	});
 var abadi199$elm_input_extra$MultiSelect$selectedOptionsDecoder = function () {
 	var filterSelected = function (options) {
 		return A2(
@@ -6718,7 +6786,8 @@ var author$project$Main$configHtml = function (config) {
 						elm$html$Html$button,
 						_List_fromArray(
 							[
-								elm$html$Html$Events$onClick(author$project$Main$ShowQuery)
+								elm$html$Html$Events$onClick(
+								author$project$Main$DatasetMessage(author$project$Main$DGetData))
 							]),
 						_List_fromArray(
 							[
