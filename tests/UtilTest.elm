@@ -36,6 +36,18 @@ suite =
             , test "scanl 2" <|
                 \_ ->
                     Expect.equalLists (Util.scanl (+) 0 (List.repeat 3 5)) [ 0, 5, 10, 15 ]
+            , test "nthLast 1" <|
+                \_ ->
+                    Expect.equal (Util.nthLast 0 [ 0 ]) (Just 0)
+            , test "nthLast 2" <|
+                \_ ->
+                    Expect.equal (Util.nthLast 4 [ 0, 1, 2, 3, 4 ]) (Just 0)
+            , test "nthLast 4" <|
+                \_ ->
+                    Expect.equal (Util.nthLast 1 [ 0, 1, 2, 3, 4 ]) (Just 3)
+            , test "nthLast 3" <|
+                \_ ->
+                    Expect.equal (Util.nthLast 44 [ 0, 1, 2, 3, 4 ]) Nothing
             , test "foo 1" <|
                 \_ ->
                     Expect.equal

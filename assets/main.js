@@ -6098,6 +6098,7 @@ var elm$core$List$filter = F2(
 			_List_Nil,
 			list);
 	});
+var elm$core$List$sortBy = _List_sortBy;
 var author$project$Dataset$helper001 = F2(
 	function (index, label) {
 		var values = A2(
@@ -6106,7 +6107,7 @@ var author$project$Dataset$helper001 = F2(
 				return {index: -1, value: l.a, valueText: l.b};
 			},
 			label);
-		return A2(
+		var unsorted = A2(
 			elm$core$List$map,
 			function (d) {
 				var found = elm$core$List$head(
@@ -6126,6 +6127,12 @@ var author$project$Dataset$helper001 = F2(
 				}
 			},
 			values);
+		return A2(
+			elm$core$List$sortBy,
+			function ($) {
+				return $.index;
+			},
+			unsorted);
 	});
 var elm$json$Json$Decode$int = _Json_decodeInt;
 var elm$json$Json$Decode$keyValuePairs = _Json_decodeKeyValuePairs;
@@ -6580,6 +6587,20 @@ var avh4$elm_color$Color$RgbaSpace = F4(
 var avh4$elm_color$Color$orange = A4(avh4$elm_color$Color$RgbaSpace, 245 / 255, 121 / 255, 0 / 255, 1.0);
 var avh4$elm_color$Color$purple = A4(avh4$elm_color$Color$RgbaSpace, 117 / 255, 80 / 255, 123 / 255, 1.0);
 var avh4$elm_color$Color$yellow = A4(avh4$elm_color$Color$RgbaSpace, 237 / 255, 212 / 255, 0 / 255, 1.0);
+var elm$virtual_dom$VirtualDom$toHandlerInt = function (handler) {
+	switch (handler.$) {
+		case 'Normal':
+			return 0;
+		case 'MayStopPropagation':
+			return 1;
+		case 'MayPreventDefault':
+			return 2;
+		default:
+			return 3;
+	}
+};
+var elm$virtual_dom$VirtualDom$text = _VirtualDom_text;
+var elm$html$Html$text = elm$virtual_dom$VirtualDom$text;
 var terezka$line_charts$Internal$Line$Series = function (a) {
 	return {$: 'Series', a: a};
 };
@@ -6603,18 +6624,6 @@ var elm$core$List$append = F2(
 	});
 var elm$core$List$concat = function (lists) {
 	return A3(elm$core$List$foldr, elm$core$List$append, _List_Nil, lists);
-};
-var elm$virtual_dom$VirtualDom$toHandlerInt = function (handler) {
-	switch (handler.$) {
-		case 'Normal':
-			return 0;
-		case 'MayStopPropagation':
-			return 1;
-		case 'MayPreventDefault':
-			return 2;
-		default:
-			return 3;
-	}
 };
 var elm$svg$Svg$trustedNode = _VirtualDom_nodeNS('http://www.w3.org/2000/svg');
 var elm$svg$Svg$defs = elm$svg$Svg$trustedNode('defs');
@@ -7114,7 +7123,6 @@ var elm$core$Maybe$map = F2(
 			return elm$core$Maybe$Nothing;
 		}
 	});
-var elm$virtual_dom$VirtualDom$text = _VirtualDom_text;
 var elm$svg$Svg$text = elm$virtual_dom$VirtualDom$text;
 var terezka$line_charts$Internal$Utils$viewMaybe = F2(
 	function (a, view) {
@@ -10542,7 +10550,6 @@ var terezka$line_charts$Internal$Junk$Config = function (a) {
 	return {$: 'Config', a: a};
 };
 var elm$html$Html$p = _VirtualDom_node('p');
-var elm$html$Html$text = elm$virtual_dom$VirtualDom$text;
 var terezka$line_charts$Internal$Junk$find = F2(
 	function (hovered, data) {
 		find:
@@ -10851,67 +10858,73 @@ var terezka$line_charts$Internal$Line$default = terezka$line_charts$Internal$Lin
 	});
 var terezka$line_charts$LineChart$Line$default = terezka$line_charts$Internal$Line$default;
 var author$project$Main$chart = function (model) {
-	return A2(
-		terezka$line_charts$LineChart$viewCustom,
-		{
-			area: terezka$line_charts$LineChart$Area$default,
-			container: A2(
-				terezka$line_charts$LineChart$Container$styled,
-				'line-chart-1',
-				_List_fromArray(
-					[
-						_Utils_Tuple2('font-family', 'monospace')
-					])),
-			dots: terezka$line_charts$LineChart$Dots$hoverOne(model.hovered),
-			events: terezka$line_charts$LineChart$Events$hoverOne(author$project$Main$Hover),
-			grid: terezka$line_charts$LineChart$Grid$default,
-			interpolation: terezka$line_charts$LineChart$Interpolation$default,
-			intersection: terezka$line_charts$LineChart$Axis$Intersection$default,
-			junk: A2(
-				terezka$line_charts$LineChart$Junk$hoverOne,
-				model.hovered,
-				_List_fromArray(
-					[
-						_Utils_Tuple2(
-						'Age',
-						A2(
-							elm$core$Basics$composeL,
-							elm$core$Debug$toString,
-							function ($) {
-								return $.age;
-							})),
-						_Utils_Tuple2(
-						'Weight',
-						A2(
-							elm$core$Basics$composeL,
-							elm$core$Debug$toString,
-							function ($) {
-								return $.weight;
-							}))
-					])),
-			legends: terezka$line_charts$LineChart$Legends$default,
-			line: terezka$line_charts$LineChart$Line$default,
-			x: A3(
-				terezka$line_charts$LineChart$Axis$default,
-				700,
-				'Age',
-				function ($) {
-					return $.age;
-				}),
-			y: A3(
-				terezka$line_charts$LineChart$Axis$default,
-				450,
-				'Weight',
-				function ($) {
-					return $.weight;
-				})
-		},
-		_List_fromArray(
-			[
-				A4(terezka$line_charts$LineChart$line, avh4$elm_color$Color$orange, terezka$line_charts$LineChart$Dots$triangle, 'Chuck', author$project$Main$chuck),
-				A4(terezka$line_charts$LineChart$line, avh4$elm_color$Color$yellow, terezka$line_charts$LineChart$Dots$circle, 'Bobby', author$project$Main$bobby),
-				A4(terezka$line_charts$LineChart$line, avh4$elm_color$Color$purple, terezka$line_charts$LineChart$Dots$diamond, 'Alice', author$project$Main$alice)
-			]));
+	var _n0 = model.dataset;
+	if (_n0.$ === 'Just') {
+		var data = _n0.a;
+		return A2(
+			terezka$line_charts$LineChart$viewCustom,
+			{
+				area: terezka$line_charts$LineChart$Area$default,
+				container: A2(
+					terezka$line_charts$LineChart$Container$styled,
+					'line-chart-1',
+					_List_fromArray(
+						[
+							_Utils_Tuple2('font-family', 'monospace')
+						])),
+				dots: terezka$line_charts$LineChart$Dots$hoverOne(model.hovered),
+				events: terezka$line_charts$LineChart$Events$hoverOne(author$project$Main$Hover),
+				grid: terezka$line_charts$LineChart$Grid$default,
+				interpolation: terezka$line_charts$LineChart$Interpolation$default,
+				intersection: terezka$line_charts$LineChart$Axis$Intersection$default,
+				junk: A2(
+					terezka$line_charts$LineChart$Junk$hoverOne,
+					model.hovered,
+					_List_fromArray(
+						[
+							_Utils_Tuple2(
+							'Age',
+							A2(
+								elm$core$Basics$composeL,
+								elm$core$Debug$toString,
+								function ($) {
+									return $.age;
+								})),
+							_Utils_Tuple2(
+							'Weight',
+							A2(
+								elm$core$Basics$composeL,
+								elm$core$Debug$toString,
+								function ($) {
+									return $.weight;
+								}))
+						])),
+				legends: terezka$line_charts$LineChart$Legends$default,
+				line: terezka$line_charts$LineChart$Line$default,
+				x: A3(
+					terezka$line_charts$LineChart$Axis$default,
+					700,
+					'Age',
+					function ($) {
+						return $.age;
+					}),
+				y: A3(
+					terezka$line_charts$LineChart$Axis$default,
+					450,
+					'Weight',
+					function ($) {
+						return $.weight;
+					})
+			},
+			_List_fromArray(
+				[
+					A4(terezka$line_charts$LineChart$line, avh4$elm_color$Color$orange, terezka$line_charts$LineChart$Dots$triangle, 'Chuck', author$project$Main$chuck),
+					A4(terezka$line_charts$LineChart$line, avh4$elm_color$Color$yellow, terezka$line_charts$LineChart$Dots$circle, 'Bobby', author$project$Main$bobby),
+					A4(terezka$line_charts$LineChart$line, avh4$elm_color$Color$purple, terezka$line_charts$LineChart$Dots$diamond, 'Alice', author$project$Main$alice)
+				]));
+	} else {
+		return elm$html$Html$text('');
+	}
 };
 var author$project$Main$GetRoot = {$: 'GetRoot'};
 var author$project$Main$DGetData = {$: 'DGetData'};

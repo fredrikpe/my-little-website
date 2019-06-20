@@ -1,7 +1,3 @@
--- READ THIS
---https://discourse.elm-lang.org/t/using-task-to-send-http-requests/2696/5
-
-
 module Main exposing (main)
 
 import Browser
@@ -361,28 +357,33 @@ dimensionHtml dimension =
 
 chart : Model -> Html.Html Msg
 chart model =
-    LineChart.viewCustom
-        { y = Axis.default 450 "Weight" .weight
-        , x = Axis.default 700 "Age" .age
-        , container = Container.styled "line-chart-1" [ ( "font-family", "monospace" ) ]
-        , interpolation = Interpolation.default
-        , intersection = Intersection.default
-        , legends = Legends.default
-        , events = Events.hoverOne Hover
-        , junk =
-            Junk.hoverOne model.hovered
-                [ ( "Age", Debug.toString << .age )
-                , ( "Weight", Debug.toString << .weight )
+    case model.dataset of
+        Just data ->
+            LineChart.viewCustom
+                { y = Axis.default 450 "Weight" .weight
+                , x = Axis.default 700 "Age" .age
+                , container = Container.styled "line-chart-1" [ ( "font-family", "monospace" ) ]
+                , interpolation = Interpolation.default
+                , intersection = Intersection.default
+                , legends = Legends.default
+                , events = Events.hoverOne Hover
+                , junk =
+                    Junk.hoverOne model.hovered
+                        [ ( "Age", Debug.toString << .age )
+                        , ( "Weight", Debug.toString << .weight )
+                        ]
+                , grid = Grid.default
+                , area = Area.default
+                , line = Line.default
+                , dots = Dots.hoverOne model.hovered
+                }
+                [ LineChart.line Color.orange Dots.triangle "Chuck" chuck
+                , LineChart.line Color.yellow Dots.circle "Bobby" bobby
+                , LineChart.line Color.purple Dots.diamond "Alice" alice
                 ]
-        , grid = Grid.default
-        , area = Area.default
-        , line = Line.default
-        , dots = Dots.hoverOne model.hovered
-        }
-        [ LineChart.line Color.orange Dots.triangle "Chuck" chuck
-        , LineChart.line Color.yellow Dots.circle "Bobby" bobby
-        , LineChart.line Color.purple Dots.diamond "Alice" alice
-        ]
+
+        Nothing ->
+            Html.text
 
 
 onQueryChange : Dataset.Dimension -> List String -> Msg

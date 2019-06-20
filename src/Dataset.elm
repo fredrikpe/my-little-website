@@ -37,7 +37,35 @@ type alias Dataset =
     { dimensions : List Dimension, values : List Float }
 
 
-iterator : Dataset -> List ( List String, List Float )
+type alias Chart =
+    { lines : List Line }
+
+
+type alias Line =
+    { points : List Point }
+
+
+type alias Point =
+    { x : String, y : Float }
+
+
+
+{-
+   toCharts : Dataset -> List Chart
+   toCharts dataset =
+       let
+           data =
+               iterator dataset
+       in
+       List.map
+           (\tuple ->
+               []
+           )
+           data
+-}
+
+
+iterator : Dataset -> List Chart
 iterator dataset =
     let
         dimCombinations =
@@ -49,26 +77,70 @@ iterator dataset =
                     (List.take (List.length dataset.dimensions - 1) dataset.dimensions)
                 )
 
-        numSlices =
-            case Util.last dataset.dimensions of
-                Just z ->
-                    List.length dataset.values // List.length z.values
+        lastDim =
+            Util.last dataset.dimensions
+                |> Maybe.withDefault { code = "error", text = "error", values = [] }
 
-                Nothing ->
-                    List.length dataset.values
+        sizeLastDim =
+            List.length lastDim.values
 
-        sliceSize =
-            List.length dataset.values // numSlices
+        size2ndLastDim =
+            Util.nthLast 1 dataset.dimensions
+                |> Maybe.map (\v -> List.length v.values)
+                |> Maybe.withDefault 1
 
-        indexes =
-            Util.scanl (+) 0 (List.repeat numSlices sliceSize)
+        numTimeSlices =
+            List.length dataset.values // sizeLastDim
+
+        timeSliceSize =
+            List.length dataset.values // numTimeSlices
+
+        timeIndexes =
+            Util.scanl (+) 0 (List.repeat numTimeSlices timeSliceSize)
+
+        timeSliced =
+            List.map (\index -> Util.slice index (index + timeSliceSize) dataset.values) timeIndexes
+
+        lines =
+            List.map
+                (\values ->
+                    List.map2 Point
+                        (List.map .value lastDim.values)
+                        values
+                )
+                timeSliced
+
+        numChartSlices =
+            List.length lines // size2ndLastDim
+
+        chartSliceSize =
+            List.length lines // numChartSlices
+
+        chartIndexes =
+            Util.scanl (+) 0 (List.repeat numChartSlices chartSliceSize)
+
+        charts : List Chart
+        charts =
+            List.map
+                (\index ->
+                    { lines =
+                        List.map
+                            (\points ->
+                                { points = points }
+                            )
+                            (Util.slice index (index + chartSliceSize) lines)
+                            |> List.filter (\line -> line.points /= [])
+                    }
+                )
+                chartIndexes
     in
-    List.map2 Tuple.pair
-        dimCombinations
-        (List.map
-            (\index -> Util.slice index (index + sliceSize) dataset.values)
-            indexes
-        )
+    List.filter (\chart -> chart.lines /= []) charts
+
+
+
+--Util.remove [] charts
+--List.map2 Tuple.pair
+--dimCombinations
 
 
 categoryConstructor id text subTree =

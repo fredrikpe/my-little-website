@@ -1,4 +1,4 @@
-module Util exposing (all, any, contains, generateCombinations, indexOf, last, replaceIf, scanl, slice)
+module Util exposing (all, any, contains, generateCombinations, indexOf, last, nthLast, remove, replaceIf, scanl, slice)
 
 
 any : (a -> Bool) -> List a -> Bool
@@ -84,6 +84,26 @@ scanl fn b =
 last : List a -> Maybe a
 last =
     List.foldl (Just >> always) Nothing
+
+
+init : List a -> List a
+init list =
+    List.take (List.length list - 1) list
+
+
+nthLast : Int -> List a -> Maybe a
+nthLast n list =
+    case n of
+        0 ->
+            last list
+
+        m ->
+            nthLast (m - 1) (init list)
+
+
+remove : a -> List a -> List a
+remove a list =
+    List.filter (\x -> x /= a) list
 
 
 generateCombinations : List (List a) -> List (List a)
