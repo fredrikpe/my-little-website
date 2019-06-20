@@ -1,4 +1,4 @@
-module Dataset exposing (Chart, Config, Dataset, DimValue, Dimension, Line, Point, Query, Tree(..), addLeafConfig, addSubTree, blankQuery, categoryConstructor, datasetDecoder, dimValueConstructor, dimensionDecoder, getDataset, getLeafConfig, getTree, helper001, helper002, iterator, leafConfigDecoder, leafConstructor, leafDecoder, partialDimensionDecoder, queryEncoder, queryToString, setHidden, ssbTreesUrl, subListDecoder, treeDecoder, treeListDecoder)
+module Dataset exposing (Chart, Config, Dataset, DimValue, Dimension, Line, Point, Query, Tree(..), addLeafConfig, addSubTree, blankQuery, categoryConstructor, datasetDecoder, dateConverter, dimValueConstructor, dimensionDecoder, getDataset, getLeafConfig, getTree, helper001, helper002, iterator, leafConfigDecoder, leafConstructor, leafDecoder, partialDimensionDecoder, queryEncoder, queryToString, setHidden, ssbTreesUrl, subListDecoder, treeDecoder, treeListDecoder)
 
 import Http
 import HttpUtil
@@ -46,23 +46,7 @@ type alias Line =
 
 
 type alias Point =
-    { x : Float, y : Float }
-
-
-
-{-
-   toCharts : Dataset -> List Chart
-   toCharts dataset =
-       let
-           data =
-               iterator dataset
-       in
-       List.map
-           (\tuple ->
-               []
-           )
-           data
--}
+    { x : String, y : Float }
 
 
 iterator : Dataset -> List (List Line)
@@ -105,7 +89,7 @@ iterator dataset =
             List.map
                 (\values ->
                     List.map2 Point
-                        (List.map (\x -> String.toFloat x.value |> Maybe.withDefault 1) lastDim.values)
+                        (List.map (\x -> x.value) lastDim.values)
                         values
                 )
                 timeSliced
@@ -132,6 +116,19 @@ iterator dataset =
                 chartIndexes
     in
     List.filter (\chart -> chart /= []) charts
+
+
+dateConverter : Dataset -> (String -> Float)
+dateConverter dataset =
+    case Util.last dataset.dimensions of
+        Just dim ->
+            \s ->
+                Util.indexOf s (List.map (\v -> v.value) dim.values)
+                    |> Maybe.map toFloat
+                    |> Maybe.withDefault 1
+
+        Nothing ->
+            \s -> 1
 
 
 
