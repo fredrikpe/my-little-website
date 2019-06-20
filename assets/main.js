@@ -6552,6 +6552,31 @@ var author$project$Main$update = F2(
 				}
 		}
 	});
+var author$project$Main$Hover = function (a) {
+	return {$: 'Hover', a: a};
+};
+var avh4$elm_color$Color$RgbaSpace = F4(
+	function (a, b, c, d) {
+		return {$: 'RgbaSpace', a: a, b: b, c: c, d: d};
+	});
+var avh4$elm_color$Color$blue = A4(avh4$elm_color$Color$RgbaSpace, 52 / 255, 101 / 255, 164 / 255, 1.0);
+var avh4$elm_color$Color$brown = A4(avh4$elm_color$Color$RgbaSpace, 193 / 255, 125 / 255, 17 / 255, 1.0);
+var avh4$elm_color$Color$green = A4(avh4$elm_color$Color$RgbaSpace, 115 / 255, 210 / 255, 22 / 255, 1.0);
+var avh4$elm_color$Color$lightBlue = A4(avh4$elm_color$Color$RgbaSpace, 114 / 255, 159 / 255, 207 / 255, 1.0);
+var avh4$elm_color$Color$lightBrown = A4(avh4$elm_color$Color$RgbaSpace, 233 / 255, 185 / 255, 110 / 255, 1.0);
+var avh4$elm_color$Color$lightGreen = A4(avh4$elm_color$Color$RgbaSpace, 138 / 255, 226 / 255, 52 / 255, 1.0);
+var avh4$elm_color$Color$lightOrange = A4(avh4$elm_color$Color$RgbaSpace, 252 / 255, 175 / 255, 62 / 255, 1.0);
+var avh4$elm_color$Color$lightPurple = A4(avh4$elm_color$Color$RgbaSpace, 173 / 255, 127 / 255, 168 / 255, 1.0);
+var avh4$elm_color$Color$lightRed = A4(avh4$elm_color$Color$RgbaSpace, 239 / 255, 41 / 255, 41 / 255, 1.0);
+var avh4$elm_color$Color$lightYellow = A4(avh4$elm_color$Color$RgbaSpace, 255 / 255, 233 / 255, 79 / 255, 1.0);
+var avh4$elm_color$Color$orange = A4(avh4$elm_color$Color$RgbaSpace, 245 / 255, 121 / 255, 0 / 255, 1.0);
+var avh4$elm_color$Color$purple = A4(avh4$elm_color$Color$RgbaSpace, 117 / 255, 80 / 255, 123 / 255, 1.0);
+var avh4$elm_color$Color$red = A4(avh4$elm_color$Color$RgbaSpace, 204 / 255, 0 / 255, 0 / 255, 1.0);
+var avh4$elm_color$Color$yellow = A4(avh4$elm_color$Color$RgbaSpace, 237 / 255, 212 / 255, 0 / 255, 1.0);
+var author$project$Chart$colors = _List_fromArray(
+	[avh4$elm_color$Color$red, avh4$elm_color$Color$orange, avh4$elm_color$Color$yellow, avh4$elm_color$Color$green, avh4$elm_color$Color$blue, avh4$elm_color$Color$purple, avh4$elm_color$Color$brown, avh4$elm_color$Color$lightRed, avh4$elm_color$Color$lightOrange, avh4$elm_color$Color$lightYellow, avh4$elm_color$Color$lightGreen, avh4$elm_color$Color$lightBlue, avh4$elm_color$Color$lightPurple, avh4$elm_color$Color$lightBrown]);
+var author$project$Chart$names = _List_fromArray(
+	['a', 'b', 'c', 'd', 'e', 'f', 'g']);
 var author$project$Dataset$Point = F2(
 	function (x, y) {
 		return {x: x, y: y};
@@ -6947,28 +6972,7 @@ var author$project$Dataset$iterator = function (dataset) {
 		},
 		charts);
 };
-var author$project$Main$Hover = function (a) {
-	return {$: 'Hover', a: a};
-};
-var avh4$elm_color$Color$RgbaSpace = F4(
-	function (a, b, c, d) {
-		return {$: 'RgbaSpace', a: a, b: b, c: c, d: d};
-	});
-var avh4$elm_color$Color$orange = A4(avh4$elm_color$Color$RgbaSpace, 245 / 255, 121 / 255, 0 / 255, 1.0);
-var elm$virtual_dom$VirtualDom$toHandlerInt = function (handler) {
-	switch (handler.$) {
-		case 'Normal':
-			return 0;
-		case 'MayStopPropagation':
-			return 1;
-		case 'MayPreventDefault':
-			return 2;
-		default:
-			return 3;
-	}
-};
-var elm$virtual_dom$VirtualDom$text = _VirtualDom_text;
-var elm$html$Html$text = elm$virtual_dom$VirtualDom$text;
+var elm$core$List$map3 = _List_map3;
 var terezka$line_charts$Internal$Line$Series = function (a) {
 	return {$: 'Series', a: a};
 };
@@ -6982,6 +6986,18 @@ var terezka$line_charts$Internal$Line$line = F4(
 			A5(terezka$line_charts$Internal$Line$SeriesConfig, color_, shape_, _List_Nil, label_, data_));
 	});
 var terezka$line_charts$LineChart$line = terezka$line_charts$Internal$Line$line;
+var elm$virtual_dom$VirtualDom$toHandlerInt = function (handler) {
+	switch (handler.$) {
+		case 'Normal':
+			return 0;
+		case 'MayStopPropagation':
+			return 1;
+		case 'MayPreventDefault':
+			return 2;
+		default:
+			return 3;
+	}
+};
 var elm$svg$Svg$trustedNode = _VirtualDom_nodeNS('http://www.w3.org/2000/svg');
 var elm$svg$Svg$defs = elm$svg$Svg$trustedNode('defs');
 var elm$svg$Svg$g = elm$svg$Svg$trustedNode('g');
@@ -7465,6 +7481,7 @@ var terezka$line_charts$Internal$Svg$xTick = F5(
 				]));
 		return A2(elm$svg$Svg$line, attributes, _List_Nil);
 	});
+var elm$virtual_dom$VirtualDom$text = _VirtualDom_text;
 var elm$svg$Svg$text = elm$virtual_dom$VirtualDom$text;
 var terezka$line_charts$Internal$Utils$viewMaybe = F2(
 	function (a, view) {
@@ -8518,7 +8535,6 @@ var terezka$line_charts$Internal$Area$opacityContainer = function (config) {
 			return opacity_;
 	}
 };
-var elm$core$List$map3 = _List_map3;
 var terezka$line_charts$Internal$Line$viewNormal = function (_n0) {
 	var areas = _n0.a;
 	var lines = _n0.b;
@@ -10551,8 +10567,8 @@ var terezka$line_charts$LineChart$Dots$hoverOne = function (maybeHovered) {
 	return terezka$line_charts$Internal$Dots$customAny(
 		{individual: styleIndividual, legend: styleLegend});
 };
-var terezka$line_charts$Internal$Dots$Triangle = {$: 'Triangle'};
-var terezka$line_charts$LineChart$Dots$triangle = terezka$line_charts$Internal$Dots$Triangle;
+var terezka$line_charts$Internal$Dots$None = {$: 'None'};
+var terezka$line_charts$LineChart$Dots$none = terezka$line_charts$Internal$Dots$None;
 var terezka$line_charts$Internal$Events$Config = function (a) {
 	return {$: 'Config', a: a};
 };
@@ -10865,6 +10881,7 @@ var terezka$line_charts$Internal$Junk$Config = function (a) {
 	return {$: 'Config', a: a};
 };
 var elm$html$Html$p = _VirtualDom_node('p');
+var elm$html$Html$text = elm$virtual_dom$VirtualDom$text;
 var terezka$line_charts$Internal$Junk$find = F2(
 	function (hovered, data) {
 		find:
@@ -11172,11 +11189,9 @@ var terezka$line_charts$Internal$Line$default = terezka$line_charts$Internal$Lin
 		return A2(terezka$line_charts$Internal$Line$style, 1, elm$core$Basics$identity);
 	});
 var terezka$line_charts$LineChart$Line$default = terezka$line_charts$Internal$Line$default;
-var author$project$Main$chart = function (model) {
-	var _n0 = model.dataset;
-	if (_n0.$ === 'Just') {
-		var data = _n0.a;
-		var charts = author$project$Dataset$iterator(data);
+var author$project$Chart$viewDataset = F3(
+	function (dataset, msg, hovered) {
+		var charts = author$project$Dataset$iterator(dataset);
 		return A2(
 			terezka$line_charts$LineChart$viewCustom,
 			{
@@ -11188,14 +11203,14 @@ var author$project$Main$chart = function (model) {
 						[
 							_Utils_Tuple2('font-family', 'monospace')
 						])),
-				dots: terezka$line_charts$LineChart$Dots$hoverOne(model.hovered),
-				events: terezka$line_charts$LineChart$Events$hoverOne(author$project$Main$Hover),
+				dots: terezka$line_charts$LineChart$Dots$hoverOne(hovered),
+				events: terezka$line_charts$LineChart$Events$hoverOne(msg),
 				grid: terezka$line_charts$LineChart$Grid$default,
 				interpolation: terezka$line_charts$LineChart$Interpolation$default,
 				intersection: terezka$line_charts$LineChart$Axis$Intersection$default,
 				junk: A2(
 					terezka$line_charts$LineChart$Junk$hoverOne,
-					model.hovered,
+					hovered,
 					_List_fromArray(
 						[
 							_Utils_Tuple2(
@@ -11232,19 +11247,29 @@ var author$project$Main$chart = function (model) {
 						return $.y;
 					})
 			},
-			A2(
-				elm$core$List$map,
-				function (c) {
-					return A4(terezka$line_charts$LineChart$line, avh4$elm_color$Color$orange, terezka$line_charts$LineChart$Dots$triangle, 'Chuck', c.points);
-				},
+			A4(
+				elm$core$List$map3,
+				F3(
+					function (c, color, name) {
+						return A4(terezka$line_charts$LineChart$line, color, terezka$line_charts$LineChart$Dots$none, name, c.points);
+					}),
 				A2(
 					elm$core$Maybe$withDefault,
 					_List_Nil,
-					elm$core$List$head(charts))));
-	} else {
-		return elm$html$Html$text('No dataset selected');
-	}
-};
+					elm$core$List$head(charts)),
+				author$project$Chart$colors,
+				author$project$Chart$names));
+	});
+var author$project$Main$viewChart = F2(
+	function (model, msg) {
+		var _n0 = model.dataset;
+		if (_n0.$ === 'Just') {
+			var d = _n0.a;
+			return A3(author$project$Chart$viewDataset, d, msg, model.hovered);
+		} else {
+			return elm$html$Html$text('No Dataset');
+		}
+	});
 var author$project$Main$GetRoot = {$: 'GetRoot'};
 var author$project$Main$DGetData = {$: 'DGetData'};
 var abadi199$elm_input_extra$MultiSelect$Option = F3(
@@ -11601,7 +11626,7 @@ var author$project$Main$view = function (model) {
 						elm$html$Html$text('SSB Datasets')
 					])),
 				model.isLoading ? elm$html$Html$text('Loading...') : author$project$Main$viewTree(model),
-				author$project$Main$chart(model)
+				A2(author$project$Main$viewChart, model, author$project$Main$Hover)
 			]));
 };
 var elm$browser$Browser$External = function (a) {

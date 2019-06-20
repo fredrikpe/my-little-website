@@ -1,4 +1,4 @@
-module Chart exposing (Info, datasetView)
+module Chart exposing (viewDataset)
 
 import Color
 import Dataset
@@ -15,66 +15,64 @@ import LineChart.Interpolation as Interpolation
 import LineChart.Junk as Junk exposing (..)
 import LineChart.Legends as Legends
 import LineChart.Line as Line
-import MultiSelect
 import Svg exposing (Attribute, Svg, g, text_, tspan)
 
 
-datasetView : Dataset.Dataset -> Msg -> Html.Html Msg
-datasetView dataset msg =
+type alias Data =
+    Dataset.Point
+
+
+viewDataset : Dataset.Dataset -> (Maybe Data -> msg) -> Maybe Data -> Html.Html msg
+viewDataset dataset msg hovered =
+    let
+        charts =
+            Dataset.iterator dataset
+    in
     LineChart.viewCustom
-        { y = Axis.default 450 "Weight" .weight
-        , x = Axis.default 700 "Age" .age
+        { y = Axis.default 450 "Weight" .y
+        , x = Axis.default 700 "Age" .x
         , container = Container.styled "line-chart-1" [ ( "font-family", "monospace" ) ]
         , interpolation = Interpolation.default
         , intersection = Intersection.default
         , legends = Legends.default
         , events = Events.hoverOne msg
         , junk =
-            Junk.hoverOne model.hovered
-                [ ( "Age", Debug.toString << .age )
-                , ( "Weight", Debug.toString << .weight )
+            Junk.hoverOne hovered
+                [ ( "Age", Debug.toString << .x )
+                , ( "Weight", Debug.toString << .y )
                 ]
         , grid = Grid.default
         , area = Area.default
         , line = Line.default
-        , dots = Dots.hoverOne model.hovered
+        , dots = Dots.hoverOne hovered
         }
-        [ LineChart.line Color.orange Dots.triangle "Chuck" chuck
-        , LineChart.line Color.yellow Dots.circle "Bobby" bobby
-        , LineChart.line Color.purple Dots.diamond "Alice" alice
-        ]
+        (List.map3
+            (\c color name ->
+                LineChart.line color Dots.none name c.points
+            )
+            (Maybe.withDefault [] (List.head charts))
+            colors
+            names
+        )
 
 
-type alias Info =
-    { age : Float
-    , weight : Float
-    , height : Float
-    , income : Float
-    }
-
-
-alice : List Info
-alice =
-    [ Info 10 34 1.34 0
-    , Info 16 42 1.62 3000
-    , Info 25 75 1.73 25000
-    , Info 43 83 1.75 40000
+colors =
+    [ Color.red
+    , Color.orange
+    , Color.yellow
+    , Color.green
+    , Color.blue
+    , Color.purple
+    , Color.brown
+    , Color.lightRed
+    , Color.lightOrange
+    , Color.lightYellow
+    , Color.lightGreen
+    , Color.lightBlue
+    , Color.lightPurple
+    , Color.lightBrown
     ]
 
 
-bobby : List Info
-bobby =
-    [ Info 10 38 1.32 0
-    , Info 17 69 1.75 2000
-    , Info 25 75 1.87 32000
-    , Info 43 77 1.87 52000
-    ]
-
-
-chuck : List Info
-chuck =
-    [ Info 10 42 1.35 0
-    , Info 15 72 1.72 1800
-    , Info 25 89 1.83 85000
-    , Info 43 95 1.84 120000
-    ]
+names =
+    [ "a", "b", "c", "d", "e", "f", "g" ]

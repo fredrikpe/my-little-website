@@ -1,7 +1,7 @@
 module Main exposing (main)
 
 import Browser
-import Color
+import Chart
 import Dataset
 import Html exposing (Html, div, h1, node, p, text)
 import Html.Attributes exposing (class)
@@ -9,20 +9,7 @@ import Html.Events
 import Http
 import HttpUtil
 import Json.Decode as Decode
-import LineChart as LineChart
-import LineChart.Area as Area
-import LineChart.Axis as Axis
-import LineChart.Axis.Intersection as Intersection
-import LineChart.Container as Container
-import LineChart.Dots as Dots
-import LineChart.Events as Events
-import LineChart.Grid as Grid
-import LineChart.Interpolation as Interpolation
-import LineChart.Junk as Junk exposing (..)
-import LineChart.Legends as Legends
-import LineChart.Line as Line
 import MultiSelect
-import Svg exposing (Attribute, Svg, g, text_, tspan)
 import Task
 import Util
 
@@ -274,8 +261,17 @@ view model =
 
           else
             viewTree model
-        , chart model
+        , viewChart model Hover
         ]
+
+
+viewChart model msg =
+    case model.dataset of
+        Just d ->
+            Chart.viewDataset d msg model.hovered
+
+        Nothing ->
+            Html.text "No Dataset"
 
 
 viewTree : Model -> Html.Html Msg
@@ -353,46 +349,6 @@ dimensionHtml dimension =
     MultiSelect.multiSelect (querySelectOptions dimension)
         []
         []
-
-
-chart : Model -> Html.Html Msg
-chart model =
-    case model.dataset of
-        Just data ->
-            let
-                charts =
-                    Dataset.iterator data
-            in
-            LineChart.viewCustom
-                { y = Axis.default 450 "Weight" .y
-                , x = Axis.default 700 "Age" .x
-                , container = Container.styled "line-chart-1" [ ( "font-family", "monospace" ) ]
-                , interpolation = Interpolation.default
-                , intersection = Intersection.default
-                , legends = Legends.default
-                , events = Events.hoverOne Hover
-                , junk =
-                    Junk.hoverOne model.hovered
-                        [ ( "Age", Debug.toString << .x )
-                        , ( "Weight", Debug.toString << .y )
-                        ]
-                , grid = Grid.default
-                , area = Area.default
-                , line = Line.default
-                , dots = Dots.hoverOne model.hovered
-                }
-                (List.map
-                    (\c ->
-                        LineChart.line Color.orange Dots.triangle "Chuck" c.points
-                    )
-                    (Maybe.withDefault [] (List.head charts))
-                )
-
-        --, LineChart.line Color.yellow Dots.circle "Bobby" bobby
-        --, LineChart.line Color.purple Dots.diamond "Alice" alice
-        --]
-        Nothing ->
-            Html.text "No dataset selected"
 
 
 onQueryChange : Dataset.Dimension -> List String -> Msg
