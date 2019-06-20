@@ -6552,41 +6552,409 @@ var author$project$Main$update = F2(
 				}
 		}
 	});
+var author$project$Dataset$Point = F2(
+	function (x, y) {
+		return {x: x, y: y};
+	});
+var elm$core$List$append = F2(
+	function (xs, ys) {
+		if (!ys.b) {
+			return xs;
+		} else {
+			return A3(elm$core$List$foldr, elm$core$List$cons, ys, xs);
+		}
+	});
+var elm$core$List$concat = function (lists) {
+	return A3(elm$core$List$foldr, elm$core$List$append, _List_Nil, lists);
+};
+var elm$core$List$tail = function (list) {
+	if (list.b) {
+		var x = list.a;
+		var xs = list.b;
+		return elm$core$Maybe$Just(xs);
+	} else {
+		return elm$core$Maybe$Nothing;
+	}
+};
+var author$project$Util$generateCombinations = function (input) {
+	var helper = F2(
+		function (acc, list) {
+			var _n0 = elm$core$List$head(list);
+			if (_n0.$ === 'Nothing') {
+				return _List_fromArray(
+					[
+						elm$core$List$reverse(acc)
+					]);
+			} else {
+				var head = _n0.a;
+				var tail = function () {
+					var _n1 = elm$core$List$tail(list);
+					if (_n1.$ === 'Just') {
+						var data = _n1.a;
+						return data;
+					} else {
+						return _List_Nil;
+					}
+				}();
+				return elm$core$List$concat(
+					A2(
+						elm$core$List$map,
+						function (item) {
+							return A2(
+								helper,
+								A2(elm$core$List$cons, item, acc),
+								tail);
+						},
+						head));
+			}
+		});
+	return A2(helper, _List_Nil, input);
+};
+var elm$core$Basics$always = F2(
+	function (a, _n0) {
+		return a;
+	});
+var elm$core$Basics$composeR = F3(
+	function (f, g, x) {
+		return g(
+			f(x));
+	});
+var author$project$Util$last = A2(
+	elm$core$List$foldl,
+	A2(elm$core$Basics$composeR, elm$core$Maybe$Just, elm$core$Basics$always),
+	elm$core$Maybe$Nothing);
+var elm$core$List$takeReverse = F3(
+	function (n, list, kept) {
+		takeReverse:
+		while (true) {
+			if (n <= 0) {
+				return kept;
+			} else {
+				if (!list.b) {
+					return kept;
+				} else {
+					var x = list.a;
+					var xs = list.b;
+					var $temp$n = n - 1,
+						$temp$list = xs,
+						$temp$kept = A2(elm$core$List$cons, x, kept);
+					n = $temp$n;
+					list = $temp$list;
+					kept = $temp$kept;
+					continue takeReverse;
+				}
+			}
+		}
+	});
+var elm$core$List$takeTailRec = F2(
+	function (n, list) {
+		return elm$core$List$reverse(
+			A3(elm$core$List$takeReverse, n, list, _List_Nil));
+	});
+var elm$core$List$takeFast = F3(
+	function (ctr, n, list) {
+		if (n <= 0) {
+			return _List_Nil;
+		} else {
+			var _n0 = _Utils_Tuple2(n, list);
+			_n0$1:
+			while (true) {
+				_n0$5:
+				while (true) {
+					if (!_n0.b.b) {
+						return list;
+					} else {
+						if (_n0.b.b.b) {
+							switch (_n0.a) {
+								case 1:
+									break _n0$1;
+								case 2:
+									var _n2 = _n0.b;
+									var x = _n2.a;
+									var _n3 = _n2.b;
+									var y = _n3.a;
+									return _List_fromArray(
+										[x, y]);
+								case 3:
+									if (_n0.b.b.b.b) {
+										var _n4 = _n0.b;
+										var x = _n4.a;
+										var _n5 = _n4.b;
+										var y = _n5.a;
+										var _n6 = _n5.b;
+										var z = _n6.a;
+										return _List_fromArray(
+											[x, y, z]);
+									} else {
+										break _n0$5;
+									}
+								default:
+									if (_n0.b.b.b.b && _n0.b.b.b.b.b) {
+										var _n7 = _n0.b;
+										var x = _n7.a;
+										var _n8 = _n7.b;
+										var y = _n8.a;
+										var _n9 = _n8.b;
+										var z = _n9.a;
+										var _n10 = _n9.b;
+										var w = _n10.a;
+										var tl = _n10.b;
+										return (ctr > 1000) ? A2(
+											elm$core$List$cons,
+											x,
+											A2(
+												elm$core$List$cons,
+												y,
+												A2(
+													elm$core$List$cons,
+													z,
+													A2(
+														elm$core$List$cons,
+														w,
+														A2(elm$core$List$takeTailRec, n - 4, tl))))) : A2(
+											elm$core$List$cons,
+											x,
+											A2(
+												elm$core$List$cons,
+												y,
+												A2(
+													elm$core$List$cons,
+													z,
+													A2(
+														elm$core$List$cons,
+														w,
+														A3(elm$core$List$takeFast, ctr + 1, n - 4, tl)))));
+									} else {
+										break _n0$5;
+									}
+							}
+						} else {
+							if (_n0.a === 1) {
+								break _n0$1;
+							} else {
+								break _n0$5;
+							}
+						}
+					}
+				}
+				return list;
+			}
+			var _n1 = _n0.b;
+			var x = _n1.a;
+			return _List_fromArray(
+				[x]);
+		}
+	});
+var elm$core$List$take = F2(
+	function (n, list) {
+		return A3(elm$core$List$takeFast, 0, n, list);
+	});
+var author$project$Util$init = function (list) {
+	return A2(
+		elm$core$List$take,
+		elm$core$List$length(list) - 1,
+		list);
+};
+var author$project$Util$nthLast = F2(
+	function (n, list) {
+		nthLast:
+		while (true) {
+			if (!n) {
+				return author$project$Util$last(list);
+			} else {
+				var m = n;
+				var $temp$n = m - 1,
+					$temp$list = author$project$Util$init(list);
+				n = $temp$n;
+				list = $temp$list;
+				continue nthLast;
+			}
+		}
+	});
+var author$project$Util$scanl = F2(
+	function (fn, b) {
+		var scan = F2(
+			function (a, bs) {
+				if (bs.b) {
+					var hd = bs.a;
+					var tl = bs.b;
+					return A2(
+						elm$core$List$cons,
+						A2(fn, a, hd),
+						bs);
+				} else {
+					return _List_Nil;
+				}
+			});
+		return A2(
+			elm$core$Basics$composeR,
+			A2(
+				elm$core$List$foldl,
+				scan,
+				_List_fromArray(
+					[b])),
+			elm$core$List$reverse);
+	});
+var elm$core$List$drop = F2(
+	function (n, list) {
+		drop:
+		while (true) {
+			if (n <= 0) {
+				return list;
+			} else {
+				if (!list.b) {
+					return list;
+				} else {
+					var x = list.a;
+					var xs = list.b;
+					var $temp$n = n - 1,
+						$temp$list = xs;
+					n = $temp$n;
+					list = $temp$list;
+					continue drop;
+				}
+			}
+		}
+	});
+var author$project$Util$slice = F3(
+	function (start, end, list) {
+		return A2(
+			elm$core$List$take,
+			end - start,
+			A2(elm$core$List$drop, start, list));
+	});
+var elm$core$Basics$neq = _Utils_notEqual;
+var elm$core$List$repeatHelp = F3(
+	function (result, n, value) {
+		repeatHelp:
+		while (true) {
+			if (n <= 0) {
+				return result;
+			} else {
+				var $temp$result = A2(elm$core$List$cons, value, result),
+					$temp$n = n - 1,
+					$temp$value = value;
+				result = $temp$result;
+				n = $temp$n;
+				value = $temp$value;
+				continue repeatHelp;
+			}
+		}
+	});
+var elm$core$List$repeat = F2(
+	function (n, value) {
+		return A3(elm$core$List$repeatHelp, _List_Nil, n, value);
+	});
+var elm$core$Maybe$map = F2(
+	function (f, maybe) {
+		if (maybe.$ === 'Just') {
+			var value = maybe.a;
+			return elm$core$Maybe$Just(
+				f(value));
+		} else {
+			return elm$core$Maybe$Nothing;
+		}
+	});
+var elm$core$String$toFloat = _String_toFloat;
+var author$project$Dataset$iterator = function (dataset) {
+	var size2ndLastDim = A2(
+		elm$core$Maybe$withDefault,
+		1,
+		A2(
+			elm$core$Maybe$map,
+			function (v) {
+				return elm$core$List$length(v.values);
+			},
+			A2(author$project$Util$nthLast, 1, dataset.dimensions)));
+	var lastDim = A2(
+		elm$core$Maybe$withDefault,
+		{code: 'error', text: 'error', values: _List_Nil},
+		author$project$Util$last(dataset.dimensions));
+	var sizeLastDim = elm$core$List$length(lastDim.values);
+	var numTimeSlices = (elm$core$List$length(dataset.values) / sizeLastDim) | 0;
+	var timeSliceSize = (elm$core$List$length(dataset.values) / numTimeSlices) | 0;
+	var timeIndexes = A3(
+		author$project$Util$scanl,
+		elm$core$Basics$add,
+		0,
+		A2(elm$core$List$repeat, numTimeSlices, timeSliceSize));
+	var timeSliced = A2(
+		elm$core$List$map,
+		function (index) {
+			return A3(author$project$Util$slice, index, index + timeSliceSize, dataset.values);
+		},
+		timeIndexes);
+	var lines = A2(
+		elm$core$List$map,
+		function (values) {
+			return A3(
+				elm$core$List$map2,
+				author$project$Dataset$Point,
+				A2(
+					elm$core$List$map,
+					function (x) {
+						return A2(
+							elm$core$Maybe$withDefault,
+							1,
+							elm$core$String$toFloat(x.value));
+					},
+					lastDim.values),
+				values);
+		},
+		timeSliced);
+	var numChartSlices = (elm$core$List$length(lines) / size2ndLastDim) | 0;
+	var dimCombinations = author$project$Util$generateCombinations(
+		A2(
+			elm$core$List$map,
+			function (x) {
+				return A2(
+					elm$core$List$map,
+					function ($) {
+						return $.value;
+					},
+					x.values);
+			},
+			A2(
+				elm$core$List$take,
+				elm$core$List$length(dataset.dimensions) - 1,
+				dataset.dimensions)));
+	var chartSliceSize = (elm$core$List$length(lines) / numChartSlices) | 0;
+	var chartIndexes = A3(
+		author$project$Util$scanl,
+		elm$core$Basics$add,
+		0,
+		A2(elm$core$List$repeat, numChartSlices, chartSliceSize));
+	var charts = A2(
+		elm$core$List$map,
+		function (index) {
+			return A2(
+				elm$core$List$filter,
+				function (line) {
+					return !_Utils_eq(line.points, _List_Nil);
+				},
+				A2(
+					elm$core$List$map,
+					function (points) {
+						return {points: points};
+					},
+					A3(author$project$Util$slice, index, index + chartSliceSize, lines)));
+		},
+		chartIndexes);
+	return A2(
+		elm$core$List$filter,
+		function (chart) {
+			return !_Utils_eq(chart, _List_Nil);
+		},
+		charts);
+};
 var author$project$Main$Hover = function (a) {
 	return {$: 'Hover', a: a};
 };
-var author$project$Main$Info = F4(
-	function (age, weight, height, income) {
-		return {age: age, height: height, income: income, weight: weight};
-	});
-var author$project$Main$alice = _List_fromArray(
-	[
-		A4(author$project$Main$Info, 10, 34, 1.34, 0),
-		A4(author$project$Main$Info, 16, 42, 1.62, 3000),
-		A4(author$project$Main$Info, 25, 75, 1.73, 25000),
-		A4(author$project$Main$Info, 43, 83, 1.75, 40000)
-	]);
-var author$project$Main$bobby = _List_fromArray(
-	[
-		A4(author$project$Main$Info, 10, 38, 1.32, 0),
-		A4(author$project$Main$Info, 17, 69, 1.75, 2000),
-		A4(author$project$Main$Info, 25, 75, 1.87, 32000),
-		A4(author$project$Main$Info, 43, 77, 1.87, 52000)
-	]);
-var author$project$Main$chuck = _List_fromArray(
-	[
-		A4(author$project$Main$Info, 10, 42, 1.35, 0),
-		A4(author$project$Main$Info, 15, 72, 1.72, 1800),
-		A4(author$project$Main$Info, 25, 89, 1.83, 85000),
-		A4(author$project$Main$Info, 43, 95, 1.84, 120000)
-	]);
 var avh4$elm_color$Color$RgbaSpace = F4(
 	function (a, b, c, d) {
 		return {$: 'RgbaSpace', a: a, b: b, c: c, d: d};
 	});
 var avh4$elm_color$Color$orange = A4(avh4$elm_color$Color$RgbaSpace, 245 / 255, 121 / 255, 0 / 255, 1.0);
-var avh4$elm_color$Color$purple = A4(avh4$elm_color$Color$RgbaSpace, 117 / 255, 80 / 255, 123 / 255, 1.0);
-var avh4$elm_color$Color$yellow = A4(avh4$elm_color$Color$RgbaSpace, 237 / 255, 212 / 255, 0 / 255, 1.0);
 var elm$virtual_dom$VirtualDom$toHandlerInt = function (handler) {
 	switch (handler.$) {
 		case 'Normal':
@@ -6614,17 +6982,6 @@ var terezka$line_charts$Internal$Line$line = F4(
 			A5(terezka$line_charts$Internal$Line$SeriesConfig, color_, shape_, _List_Nil, label_, data_));
 	});
 var terezka$line_charts$LineChart$line = terezka$line_charts$Internal$Line$line;
-var elm$core$List$append = F2(
-	function (xs, ys) {
-		if (!ys.b) {
-			return xs;
-		} else {
-			return A3(elm$core$List$foldr, elm$core$List$cons, ys, xs);
-		}
-	});
-var elm$core$List$concat = function (lists) {
-	return A3(elm$core$List$foldr, elm$core$List$append, _List_Nil, lists);
-};
 var elm$svg$Svg$trustedNode = _VirtualDom_nodeNS('http://www.w3.org/2000/svg');
 var elm$svg$Svg$defs = elm$svg$Svg$trustedNode('defs');
 var elm$svg$Svg$g = elm$svg$Svg$trustedNode('g');
@@ -6703,11 +7060,6 @@ var terezka$line_charts$Internal$Path$Move = function (a) {
 	return {$: 'Move', a: a};
 };
 var elm$svg$Svg$Attributes$d = _VirtualDom_attribute('d');
-var elm$core$Basics$composeR = F3(
-	function (f, g, x) {
-		return g(
-			f(x));
-	});
 var terezka$line_charts$Internal$Path$join = function (commands) {
 	return A2(elm$core$String$join, ' ', commands);
 };
@@ -7112,16 +7464,6 @@ var terezka$line_charts$Internal$Svg$xTick = F5(
 						A2(terezka$line_charts$LineChart$Coordinate$toSvgY, system, y) + height))
 				]));
 		return A2(elm$svg$Svg$line, attributes, _List_Nil);
-	});
-var elm$core$Maybe$map = F2(
-	function (f, maybe) {
-		if (maybe.$ === 'Just') {
-			var value = maybe.a;
-			return elm$core$Maybe$Just(
-				f(value));
-		} else {
-			return elm$core$Maybe$Nothing;
-		}
 	});
 var elm$svg$Svg$text = elm$virtual_dom$VirtualDom$text;
 var terezka$line_charts$Internal$Utils$viewMaybe = F2(
@@ -8237,7 +8579,6 @@ var terezka$line_charts$Internal$Interpolation$monotoneCurve = F4(
 			{x: point1.x - dx, y: point1.y - (dx * tangent1)},
 			point1);
 	});
-var elm$core$Basics$neq = _Utils_notEqual;
 var terezka$line_charts$Internal$Interpolation$slope2 = F3(
 	function (point0, point1, t) {
 		var h = point1.x - point0.x;
@@ -8573,27 +8914,6 @@ var terezka$line_charts$Internal$Utils$towardsZero = function (_n0) {
 	var min = _n0.min;
 	return A3(elm$core$Basics$clamp, min, max, 0);
 };
-var elm$core$List$drop = F2(
-	function (n, list) {
-		drop:
-		while (true) {
-			if (n <= 0) {
-				return list;
-			} else {
-				if (!list.b) {
-					return list;
-				} else {
-					var x = list.a;
-					var xs = list.b;
-					var $temp$n = n - 1,
-						$temp$list = xs;
-					n = $temp$n;
-					list = $temp$list;
-					continue drop;
-				}
-			}
-		}
-	});
 var terezka$line_charts$Internal$Utils$last = function (list) {
 	return elm$core$List$head(
 		A2(
@@ -9655,7 +9975,6 @@ var terezka$line_charts$Internal$Axis$Values$getBeginning = F2(
 			elm$core$Basics$round(multiple)) ? min : A2(terezka$line_charts$Internal$Axis$Values$ceilingTo, interval, min);
 	});
 var elm$core$Basics$ge = _Utils_ge;
-var elm$core$String$toFloat = _String_toFloat;
 var elm$core$Basics$not = _Basics_not;
 var elm$core$Basics$isInfinite = _Basics_isInfinite;
 var elm$core$String$length = _String_length;
@@ -10185,10 +10504,6 @@ var terezka$line_charts$Internal$Container$styled = F2(
 			});
 	});
 var terezka$line_charts$LineChart$Container$styled = terezka$line_charts$Internal$Container$styled;
-var terezka$line_charts$Internal$Dots$Circle = {$: 'Circle'};
-var terezka$line_charts$LineChart$Dots$circle = terezka$line_charts$Internal$Dots$Circle;
-var terezka$line_charts$Internal$Dots$Diamond = {$: 'Diamond'};
-var terezka$line_charts$LineChart$Dots$diamond = terezka$line_charts$Internal$Dots$Diamond;
 var terezka$line_charts$Internal$Dots$Config = function (a) {
 	return {$: 'Config', a: a};
 };
@@ -10861,6 +11176,7 @@ var author$project$Main$chart = function (model) {
 	var _n0 = model.dataset;
 	if (_n0.$ === 'Just') {
 		var data = _n0.a;
+		var charts = author$project$Dataset$iterator(data);
 		return A2(
 			terezka$line_charts$LineChart$viewCustom,
 			{
@@ -10888,7 +11204,7 @@ var author$project$Main$chart = function (model) {
 								elm$core$Basics$composeL,
 								elm$core$Debug$toString,
 								function ($) {
-									return $.age;
+									return $.x;
 								})),
 							_Utils_Tuple2(
 							'Weight',
@@ -10896,7 +11212,7 @@ var author$project$Main$chart = function (model) {
 								elm$core$Basics$composeL,
 								elm$core$Debug$toString,
 								function ($) {
-									return $.weight;
+									return $.y;
 								}))
 						])),
 				legends: terezka$line_charts$LineChart$Legends$default,
@@ -10906,24 +11222,27 @@ var author$project$Main$chart = function (model) {
 					700,
 					'Age',
 					function ($) {
-						return $.age;
+						return $.x;
 					}),
 				y: A3(
 					terezka$line_charts$LineChart$Axis$default,
 					450,
 					'Weight',
 					function ($) {
-						return $.weight;
+						return $.y;
 					})
 			},
-			_List_fromArray(
-				[
-					A4(terezka$line_charts$LineChart$line, avh4$elm_color$Color$orange, terezka$line_charts$LineChart$Dots$triangle, 'Chuck', author$project$Main$chuck),
-					A4(terezka$line_charts$LineChart$line, avh4$elm_color$Color$yellow, terezka$line_charts$LineChart$Dots$circle, 'Bobby', author$project$Main$bobby),
-					A4(terezka$line_charts$LineChart$line, avh4$elm_color$Color$purple, terezka$line_charts$LineChart$Dots$diamond, 'Alice', author$project$Main$alice)
-				]));
+			A2(
+				elm$core$List$map,
+				function (c) {
+					return A4(terezka$line_charts$LineChart$line, avh4$elm_color$Color$orange, terezka$line_charts$LineChart$Dots$triangle, 'Chuck', c.points);
+				},
+				A2(
+					elm$core$Maybe$withDefault,
+					_List_Nil,
+					elm$core$List$head(charts))));
 	} else {
-		return elm$html$Html$text('');
+		return elm$html$Html$text('No dataset selected');
 	}
 };
 var author$project$Main$GetRoot = {$: 'GetRoot'};
@@ -11427,10 +11746,6 @@ var elm$url$Url$fromString = function (str) {
 		A2(elm$core$String$dropLeft, 8, str)) : elm$core$Maybe$Nothing);
 };
 var elm$browser$Browser$element = _Browser_element;
-var elm$core$Basics$always = F2(
-	function (a, _n0) {
-		return a;
-	});
 var elm$core$Platform$Sub$batch = _Platform_batch;
 var elm$core$Platform$Sub$none = elm$core$Platform$Sub$batch(_List_Nil);
 var author$project$Main$main = elm$browser$Browser$element(

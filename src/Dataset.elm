@@ -1,4 +1,4 @@
-module Dataset exposing (Config, Dataset, DimValue, Dimension, Query, Tree(..), addLeafConfig, addSubTree, blankQuery, categoryConstructor, datasetDecoder, dimValueConstructor, dimensionDecoder, getDataset, getLeafConfig, getTree, helper001, helper002, iterator, leafConfigDecoder, leafConstructor, leafDecoder, partialDimensionDecoder, queryEncoder, queryToString, setHidden, ssbTreesUrl, subListDecoder, treeDecoder, treeListDecoder)
+module Dataset exposing (Chart, Config, Dataset, DimValue, Dimension, Line, Point, Query, Tree(..), addLeafConfig, addSubTree, blankQuery, categoryConstructor, datasetDecoder, dimValueConstructor, dimensionDecoder, getDataset, getLeafConfig, getTree, helper001, helper002, iterator, leafConfigDecoder, leafConstructor, leafDecoder, partialDimensionDecoder, queryEncoder, queryToString, setHidden, ssbTreesUrl, subListDecoder, treeDecoder, treeListDecoder)
 
 import Http
 import HttpUtil
@@ -46,7 +46,7 @@ type alias Line =
 
 
 type alias Point =
-    { x : String, y : Float }
+    { x : Float, y : Float }
 
 
 
@@ -65,7 +65,7 @@ type alias Point =
 -}
 
 
-iterator : Dataset -> List Chart
+iterator : Dataset -> List (List Line)
 iterator dataset =
     let
         dimCombinations =
@@ -105,7 +105,7 @@ iterator dataset =
             List.map
                 (\values ->
                     List.map2 Point
-                        (List.map .value lastDim.values)
+                        (List.map (\x -> String.toFloat x.value |> Maybe.withDefault 1) lastDim.values)
                         values
                 )
                 timeSliced
@@ -119,22 +119,19 @@ iterator dataset =
         chartIndexes =
             Util.scanl (+) 0 (List.repeat numChartSlices chartSliceSize)
 
-        charts : List Chart
         charts =
             List.map
                 (\index ->
-                    { lines =
-                        List.map
-                            (\points ->
-                                { points = points }
-                            )
-                            (Util.slice index (index + chartSliceSize) lines)
-                            |> List.filter (\line -> line.points /= [])
-                    }
+                    List.map
+                        (\points ->
+                            { points = points }
+                        )
+                        (Util.slice index (index + chartSliceSize) lines)
+                        |> List.filter (\line -> line.points /= [])
                 )
                 chartIndexes
     in
-    List.filter (\chart -> chart.lines /= []) charts
+    List.filter (\chart -> chart /= []) charts
 
 
 

@@ -42,7 +42,7 @@ type alias Model =
     , errorMsg : Maybe String
     , isLoading : Bool
     , query : Maybe Dataset.Query
-    , hovered : Maybe Info
+    , hovered : Maybe Dataset.Point
     , dataset : Maybe Dataset.Dataset
     }
 
@@ -116,7 +116,7 @@ type Msg
     | Hide String
     | GotRoot (Result Http.Error (List Dataset.Tree))
     | GotSubTree String (Result Http.Error (List Dataset.Tree))
-    | Hover (Maybe Info)
+    | Hover (Maybe Dataset.Point)
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -359,9 +359,13 @@ chart : Model -> Html.Html Msg
 chart model =
     case model.dataset of
         Just data ->
+            let
+                charts =
+                    Dataset.iterator data
+            in
             LineChart.viewCustom
-                { y = Axis.default 450 "Weight" .weight
-                , x = Axis.default 700 "Age" .age
+                { y = Axis.default 450 "Weight" .y
+                , x = Axis.default 700 "Age" .x
                 , container = Container.styled "line-chart-1" [ ( "font-family", "monospace" ) ]
                 , interpolation = Interpolation.default
                 , intersection = Intersection.default
@@ -369,21 +373,26 @@ chart model =
                 , events = Events.hoverOne Hover
                 , junk =
                     Junk.hoverOne model.hovered
-                        [ ( "Age", Debug.toString << .age )
-                        , ( "Weight", Debug.toString << .weight )
+                        [ ( "Age", Debug.toString << .x )
+                        , ( "Weight", Debug.toString << .y )
                         ]
                 , grid = Grid.default
                 , area = Area.default
                 , line = Line.default
                 , dots = Dots.hoverOne model.hovered
                 }
-                [ LineChart.line Color.orange Dots.triangle "Chuck" chuck
-                , LineChart.line Color.yellow Dots.circle "Bobby" bobby
-                , LineChart.line Color.purple Dots.diamond "Alice" alice
-                ]
+                (List.map
+                    (\c ->
+                        LineChart.line Color.orange Dots.triangle "Chuck" c.points
+                    )
+                    (Maybe.withDefault [] (List.head charts))
+                )
 
+        --, LineChart.line Color.yellow Dots.circle "Bobby" bobby
+        --, LineChart.line Color.purple Dots.diamond "Alice" alice
+        --]
         Nothing ->
-            Html.text
+            Html.text "No dataset selected"
 
 
 onQueryChange : Dataset.Dimension -> List String -> Msg
