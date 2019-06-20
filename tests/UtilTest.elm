@@ -30,5 +30,28 @@ suite =
             , test "indexOf 2" <|
                 \_ ->
                     Expect.equal (Util.indexOf 56 [ 0, 1, 2, 3, 4, 5 ]) Nothing
+            , test "scanl 1" <|
+                \_ ->
+                    Expect.equalLists (Util.scanl (+) 0 [ 1, 2, 3 ]) [ 0, 1, 3, 6 ]
+            , test "scanl 2" <|
+                \_ ->
+                    Expect.equalLists (Util.scanl (+) 0 (List.repeat 3 5)) [ 0, 5, 10, 15 ]
+            , test "foo 1" <|
+                \_ ->
+                    Expect.equal
+                        (Util.generateCombinations [ [ "x0", "x1" ], [ "y0", "y1", "y2" ], [ "z0", "z1" ] ])
+                        [ [ "x0", "y0", "z0" ]
+                        , [ "x0", "y0", "z1" ]
+                        , [ "x0", "y1", "z0" ]
+                        , [ "x0", "y1", "z1" ]
+                        , [ "x0", "y2", "z0" ]
+                        , [ "x0", "y2", "z1" ]
+                        , [ "x1", "y0", "z0" ]
+                        , [ "x1", "y0", "z1" ]
+                        , [ "x1", "y1", "z0" ]
+                        , [ "x1", "y1", "z1" ]
+                        , [ "x1", "y2", "z0" ]
+                        , [ "x1", "y2", "z1" ]
+                        ]
             ]
         ]

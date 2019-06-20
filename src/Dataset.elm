@@ -1,4 +1,4 @@
-module Dataset exposing (Config, Dataset, DimValue, Dimension, Query, Tree(..), access, access1, accessFirstDim, addLeafConfig, addSubTree, blankQuery, categoryConstructor, datasetDecoder, datasetSize, dimValueConstructor, dimensionDecoder, dimensionSize, getDataset, getLeafConfig, getTree, helper001, helper002, leafConfigDecoder, leafConstructor, leafDecoder, partialDimensionDecoder, queryEncoder, queryToString, setHidden, ssbTreesUrl, subListDecoder, treeDecoder, treeListDecoder)
+module Dataset exposing (Config, Dataset, DimValue, Dimension, Query, Tree(..), addLeafConfig, addSubTree, blankQuery, categoryConstructor, datasetDecoder, dimValueConstructor, dimensionDecoder, getDataset, getLeafConfig, getTree, helper001, helper002, iterator, leafConfigDecoder, leafConstructor, leafDecoder, partialDimensionDecoder, queryEncoder, queryToString, setHidden, ssbTreesUrl, subListDecoder, treeDecoder, treeListDecoder)
 
 import Http
 import HttpUtil
@@ -37,59 +37,38 @@ type alias Dataset =
     { dimensions : List Dimension, values : List Float }
 
 
-dimensionSize dimension =
-    List.length dimension.values
-
-
-datasetSize dataset =
-    List.length dataset.values
-
-
-access : List ( Dimension, Int ) -> Dataset -> Maybe Dataset
-access ds dataset =
-    Nothing
-
-
-access1 : Dimension -> DimValue -> Dataset -> Maybe Dataset
-access1 dim n dataset =
-    if not (Util.contains dim dataset.dimensions) then
-        Nothing
-
-    else
-        Nothing
-
-
-accessFirstDim : Dimension -> DimValue -> Dataset -> Maybe Dataset
-accessFirstDim dimension value dataset =
+iterator : Dataset -> List ( List String, List Float )
+iterator dataset =
     let
-        mtail =
-            List.tail dataset.dimensions
+        dimCombinations =
+            Util.generateCombinations
+                (List.map
+                    (\x ->
+                        List.map .value x.values
+                    )
+                    (List.take (List.length dataset.dimensions - 1) dataset.dimensions)
+                )
 
-        mindex =
-            Util.indexOf value dimension.values
+        numSlices =
+            case Util.last dataset.dimensions of
+                Just z ->
+                    List.length dataset.values // List.length z.values
+
+                Nothing ->
+                    List.length dataset.values
 
         sliceSize =
-            datasetSize dataset // dimensionSize dimension
+            List.length dataset.values // numSlices
+
+        indexes =
+            Util.scanl (+) 0 (List.repeat numSlices sliceSize)
     in
-    case mtail of
-        Nothing ->
-            Nothing
-
-        Just tail ->
-            case mindex of
-                Nothing ->
-                    Nothing
-
-                Just index ->
-                    Just
-                        { dataset
-                            | dimensions = tail
-                            , values =
-                                Util.slice
-                                    (index * sliceSize)
-                                    ((index + 1) * sliceSize)
-                                    dataset.values
-                        }
+    List.map2 Tuple.pair
+        dimCombinations
+        (List.map
+            (\index -> Util.slice index (index + sliceSize) dataset.values)
+            indexes
+        )
 
 
 categoryConstructor id text subTree =
@@ -249,21 +228,24 @@ helper001 index label =
     let
         values =
             List.map (\l -> { value = Tuple.first l, valueText = Tuple.second l, index = -1 }) label
-    in
-    List.map
-        (\d ->
-            let
-                found =
-                    List.head (List.filter (\t -> Tuple.first t == d.value) index)
-            in
-            case found of
-                Just f ->
-                    { d | index = Tuple.second f }
 
-                Nothing ->
-                    d
-        )
-        values
+        unsorted =
+            List.map
+                (\d ->
+                    let
+                        found =
+                            List.head (List.filter (\t -> Tuple.first t == d.value) index)
+                    in
+                    case found of
+                        Just f ->
+                            { d | index = Tuple.second f }
+
+                        Nothing ->
+                            d
+                )
+                values
+    in
+    List.sortBy .index unsorted
 
 
 datasetDecoder : Decode.Decoder Dataset

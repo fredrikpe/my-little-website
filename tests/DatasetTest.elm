@@ -197,16 +197,6 @@ suite =
                         values =
                             [ 0, 1, 2, 3, 4, 5 ]
 
-                        -- [ [ x0y0: 0, x0y1: 1, x0y2: 2 ]
-                        --   [ x1y0: 3, x1y1: 4, x1y2: 5 ] ]
-                        -- [ [ [x0y0z0, x0y0z1]
-                        --   , [x0y1z0, x0y1z1] ]
-                        -- , [ [x1y0z0, x1y0z1]
-                        --   , [x1y1z0, x1y1z1] ]
-                        --  [ 0, 1, 2, 3, 4, 5, 6, 7 ]
-                        -- x  0  0  0  0  1  1  1  1
-                        -- y  0  0  1  1  0  0  1  1
-                        -- z  0  1  0  1  0  1  0  1
                         x0 =
                             dimValue "x0" 0
 
@@ -236,7 +226,9 @@ suite =
                             Expect.all
                                 [ \d -> Expect.equalLists d.values values
                                 , \d -> Expect.equalLists d.dimensions dimensions
-                                , \d -> Expect.equal (Dataset.accessFirstDim x x0 d) Nothing
+                                , \d ->
+                                    Expect.equalLists (Dataset.iterator d)
+                                        [ ( [ "x0" ], [ 0, 1, 2 ] ), ( [ "x1" ], [ 3, 4, 5 ] ) ]
                                 ]
                                 data
 
@@ -314,7 +306,13 @@ suite =
                             Expect.all
                                 [ \d -> Expect.equalLists d.values values
                                 , \d -> Expect.equalLists d.dimensions dimensions
-                                , \d -> Expect.equal (Dataset.access1 x x0 d) Nothing
+                                , \d ->
+                                    Expect.equalLists (Dataset.iterator data)
+                                        [ ( [ "x0", "y0" ], [ 0, 1 ] )
+                                        , ( [ "x0", "y1" ], [ 2, 3 ] )
+                                        , ( [ "x1", "y0" ], [ 4, 5 ] )
+                                        , ( [ "x1", "y1" ], [ 6, 7 ] )
+                                        ]
                                 ]
                                 data
 

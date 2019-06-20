@@ -1,4 +1,4 @@
-module Util exposing (all, any, contains, indexOf, replaceIf, slice)
+module Util exposing (all, any, contains, generateCombinations, indexOf, last, replaceIf, scanl, slice)
 
 
 any : (a -> Bool) -> List a -> Bool
@@ -22,7 +22,7 @@ getAt i list =
         x :: xs ->
             case i of
                 0 ->
-                    x
+                    Just x
 
                 n ->
                     getAt (n - 1) xs
@@ -81,82 +81,38 @@ scanl fn b =
     List.foldl scan [ b ] >> List.reverse
 
 
-foldl2 : (a -> a -> b -> b) -> b -> List a -> List a -> b
-foldl2 f initialValue =
+last : List a -> Maybe a
+last =
+    List.foldl (Just >> always) Nothing
+
+
+generateCombinations : List (List a) -> List (List a)
+generateCombinations input =
     let
-        helper acc l1 l2 =
-            case ( l1, l2 ) of
-                ( x1 :: xs1, x2 :: xs2 ) ->
-                    helper (f x1 x2 acc) xs1 xs2
+        helper : List a -> List (List a) -> List (List a)
+        helper acc list =
+            case List.head list of
+                Nothing ->
+                    [ List.reverse acc ]
 
-                _ ->
-                    acc
+                Just head ->
+                    let
+                        tail =
+                            case List.tail list of
+                                Just data ->
+                                    data
+
+                                Nothing ->
+                                    []
+                    in
+                    List.concat
+                        (List.map
+                            (\item ->
+                                helper
+                                    (item :: acc)
+                                    tail
+                            )
+                            head
+                        )
     in
-    helper initialValue
-
-
-andThen : (a -> List b) -> List a -> List b
-andThen =
-    List.concatMap
-
-
-lift2 : (a -> b -> c) -> List a -> List b -> List c
-lift2 f la lb =
-    la |> andThen (\a -> lb |> andThen (\b -> [ f a b ]))
-
-
-cartesianProduct : List (List a) -> List (List a)
-cartesianProduct ll =
-    case ll of
-        [] ->
-            [ [] ]
-
-        xs :: xss ->
-            lift2 (::) xs (cartesianProduct xss)
-
-
-type alias DataArray =
-    List Float
-
-
-type alias Tensor =
-    { data : DataArray
-    , shape : List Int
-    }
-
-
-stridesFromShape : Int -> List Int -> List Int
-stridesFromShape dimension shape =
-    scanl (*) 1 shape
-        |> List.take dimension
-
-
-extractTensorValues : List Int -> List Int -> DataArray -> DataArray
-extractTensorValues shape strides data =
-    let
-        subToIndex : List Int -> Int
-        subToIndex =
-            foldl2 (\stride s acc -> stride * s + acc) 0 strides
-
-        allIndices : List Int
-        allIndices =
-            shape
-                |> List.foldl (\s ranges -> List.range 0 (s - 1) :: ranges) []
-                |> cartesianProduct
-                |> List.map (List.reverse >> subToIndex)
-    in
-    extractIndices allIndices data
-
-
-extractIndices : List Int -> DataArray -> DataArray
-extractIndices indices data =
-    List.map (\i -> getAt i data) indices
-        |> List.filter
-            (\x ->
-                case x of
-                    Just n ->
-                        True
-
-                    Nothing ->
-                        False
-            )
+    helper [] input
