@@ -41,6 +41,7 @@ button:hover {
 }
 
 .view__config_div {
+    height:70px;
     margin-left: auto;
     margin-right: 0;
 }

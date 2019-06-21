@@ -27,37 +27,27 @@ main =
 type alias Model =
     { trees : List Dataset.Tree
     , errorMsg : Maybe String
-    , isLoading : Bool
     , query : Maybe Dataset.Query
     , hovered : Maybe Dataset.Point
+    , datasetConfig : Maybe Dataset.Config
     , dataset : Maybe Dataset.Dataset
+    , showTree : Bool
     }
 
 
 defaultModel =
     { trees = []
     , errorMsg = Nothing
-    , isLoading = False
     , query = Nothing
     , hovered = Nothing
+    , datasetConfig = Nothing
     , dataset = Nothing
+    , showTree = False
     }
 
 
-notLoading model =
-    { model | isLoading = False }
-
-
-updateTrees trees model =
-    notLoading { model | trees = trees }
-
-
 updateTree id f model =
-    updateTrees (List.map (f id) model.trees) model
-
-
-setLoading model =
-    { model | isLoading = True }
+    { model | trees = List.map (f id) model.trees }
 
 
 errorModel errorMsg =
@@ -82,10 +72,9 @@ init _ =
 
 
 type DatasetMsg
-    = DShow String Dataset.Config
-    | DHide String
-    | DGetConfig String
-    | DGotConfig String (Result Http.Error Dataset.Config)
+    = DGetConfig String
+    | DSetConfig (Maybe Dataset.Config)
+    | DGotConfig String Dataset.Config
     | DSetQueryDimension Dataset.Dimension
     | DShowGraph
     | DGetData
@@ -95,8 +84,10 @@ type DatasetMsg
 type Msg
     = Pass
     | ShowStrings (List String)
+    | HttpError Http.Error
     | ShowQuery
     | GetRoot
+    | ShowTree
     | GetSubTree String
     | DatasetMessage DatasetMsg
     | Show String
@@ -112,11 +103,25 @@ update msg model =
         Pass ->
             ( model, Cmd.none )
 
+        ShowTree ->
+            let
+                cmd =
+                    if List.isEmpty model.trees then
+                        Task.attempt GotRoot (Dataset.getTree "")
+
+                    else
+                        Cmd.none
+            in
+            ( { model | showTree = not model.showTree }, cmd )
+
         Hover hovered ->
             ( { model | hovered = hovered }, Cmd.none )
 
         ShowStrings s ->
             ( { model | errorMsg = Just (String.join "" s) }, Cmd.none )
+
+        HttpError e ->
+            ( { model | errorMsg = Just (Debug.toString e) }, Cmd.none )
 
         ShowQuery ->
             case model.query of
@@ -127,7 +132,7 @@ update msg model =
                     ( model, Cmd.none )
 
         GetRoot ->
-            ( setLoading model, Task.attempt GotRoot (Dataset.getTree "") )
+            ( model, Task.attempt GotRoot (Dataset.getTree "") )
 
         GetSubTree id ->
             ( model, Task.attempt (GotSubTree id) (Dataset.getTree id) )
@@ -144,7 +149,7 @@ update msg model =
         GotRoot result ->
             case result of
                 Ok trees ->
-                    ( updateTrees trees model, Cmd.none )
+                    ( { model | trees = trees, showTree = not model.showTree }, Cmd.none )
 
                 Err e ->
                     ( errorModel (Debug.toString e), Cmd.none )
@@ -167,16 +172,10 @@ update msg model =
 handleDatasetMsg : DatasetMsg -> Model -> ( Model, Cmd Msg )
 handleDatasetMsg msg model =
     case msg of
-        DShow id config ->
-            ( (setQuery (Just (Dataset.blankQuery id config)) << show id) model, Cmd.none )
-
-        DHide id ->
-            ( (setQuery Nothing << hide id) model, Cmd.none )
-
         DGetData ->
             case model.query of
                 Just q ->
-                    ( setLoading model
+                    ( model
                     , Task.attempt
                         (\x ->
                             DatasetMessage (DGotData x)
@@ -190,11 +189,10 @@ handleDatasetMsg msg model =
         DGotData result ->
             case result of
                 Ok dataset ->
-                    ( notLoading
-                        { model
-                            | errorMsg = Just (Debug.toString dataset)
-                            , dataset = Just dataset
-                        }
+                    ( { model
+                        | errorMsg = Just (Debug.toString dataset)
+                        , dataset = Just dataset
+                      }
                     , Cmd.none
                     )
 
@@ -221,27 +219,28 @@ handleDatasetMsg msg model =
         DGetConfig id ->
             ( model
             , Task.attempt
-                (\x ->
-                    DatasetMessage (DGotConfig id x)
+                (\result ->
+                    case result of
+                        Ok config ->
+                            DatasetMessage (DGotConfig id config)
+
+                        Err e ->
+                            HttpError e
                 )
                 (Dataset.getLeafConfig id)
             )
 
-        DGotConfig id result ->
-            case result of
-                Ok config ->
-                    ( (setQuery (Just (Dataset.blankQuery id config))
-                        << updateTree id
-                            (\x y ->
-                                Dataset.addLeafConfig config x (Dataset.setHidden False x y)
-                            )
-                      )
-                        model
-                    , Cmd.none
-                    )
+        DGotConfig id config ->
+            let
+                newModel =
+                    updateTree id
+                        (Dataset.setLeafConfig config)
+                        (setQuery (Just (Dataset.blankQuery id config)) model)
+            in
+            ( { newModel | datasetConfig = Just config, showTree = False }, Cmd.none )
 
-                Err e ->
-                    ( errorModel (Debug.toString e), Cmd.none )
+        DSetConfig config ->
+            ( { model | datasetConfig = config, showTree = config /= Nothing }, Cmd.none )
 
         DShowGraph ->
             case model.query of
@@ -256,11 +255,8 @@ view : Model -> Html.Html Msg
 view model =
     Html.div []
         [ Html.h2 [] [ Html.text "SSB Datasets" ]
-        , if model.isLoading then
-            Html.text "Loading..."
-
-          else
-            viewTree model
+        , viewTree model
+        , configHtml model.datasetConfig
         , viewChart model Hover
         ]
 
@@ -278,15 +274,17 @@ viewTree : Model -> Html.Html Msg
 viewTree model =
     Html.div []
         [ Html.text (Maybe.withDefault "" model.errorMsg)
-        , Html.button
-            [ Html.Events.onClick GetRoot, Html.Attributes.style "display" "block" ]
-            [ Html.text "Get Datasets!" ]
-        , Html.ul [] (List.map treeHtml model.trees)
+        , Html.button [ Html.Events.onClick ShowTree, Html.Attributes.style "display" "block" ] [ Html.text "Choose Dataset" ]
+        , if model.showTree then
+            Html.ul [] (List.map (treeHtml model.datasetConfig) model.trees)
+
+          else
+            Html.text ""
         ]
 
 
-treeHtml : Dataset.Tree -> Html.Html Msg
-treeHtml tree =
+treeHtml : Maybe Dataset.Config -> Dataset.Tree -> Html.Html Msg
+treeHtml oldConfig tree =
     case tree of
         Dataset.Category list ->
             Html.li []
@@ -296,37 +294,32 @@ treeHtml tree =
                         []
 
                      else
-                        List.map treeHtml list.subTree
+                        List.map (treeHtml oldConfig) list.subTree
                     )
                 ]
 
         Dataset.Leaf leaf ->
             Html.li []
                 [ Html.button
-                    [ Html.Events.onClick (leafOnClick leaf) ]
+                    [ Html.Events.onClick (leafOnClick leaf oldConfig) ]
                     [ Html.text leaf.text ]
-                , if leaf.isHidden then
-                    Html.text ""
-
-                  else
-                    configHtml leaf.config
                 ]
 
 
 configHtml : Maybe Dataset.Config -> Html.Html Msg
 configHtml config =
-    case config of
-        Just c ->
-            Html.div [ Html.Attributes.class "view__config_div" ]
-                (List.map (\v -> dimensionHtml v) c.dimensions
+    Html.div [ Html.Attributes.class "view__config_div" ]
+        (case config of
+            Just c ->
+                List.map (\v -> dimensionHtml v) c.dimensions
                     ++ [ Html.button
                             [ Html.Events.onClick (DatasetMessage DGetData) ]
                             [ Html.text "Show graph" ]
                        ]
-                )
 
-        Nothing ->
-            Html.text ""
+            Nothing ->
+                [ Html.text "" ]
+        )
 
 
 querySelectOptions : Dataset.Dimension -> MultiSelect.Options Msg
@@ -372,14 +365,14 @@ treeListOnClick list =
         Hide list.id
 
 
-leafOnClick leaf =
+leafOnClick leaf oldConfig =
     case leaf.config of
         Just config ->
-            if leaf.isHidden then
-                DatasetMessage (DShow leaf.id config)
+            if oldConfig == Just config then
+                DatasetMessage (DSetConfig Nothing)
 
             else
-                DatasetMessage (DHide leaf.id)
+                DatasetMessage (DSetConfig (Just config))
 
         Nothing ->
             DatasetMessage (DGetConfig leaf.id)

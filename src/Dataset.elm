@@ -1,4 +1,4 @@
-module Dataset exposing (Chart, Config, Dataset, DimValue, Dimension, Line, Point, Query, Tree(..), addLeafConfig, addSubTree, blankQuery, categoryConstructor, datasetDecoder, dateConverter, dimValueConstructor, dimensionDecoder, getDataset, getLeafConfig, getTree, helper001, helper002, iterator, leafConfigDecoder, leafConstructor, leafDecoder, partialDimensionDecoder, queryEncoder, queryToString, setHidden, ssbTreesUrl, subListDecoder, treeDecoder, treeListDecoder)
+module Dataset exposing (Chart, Config, Dataset, DimValue, Dimension, Line, Point, PointConverter, Query, Tree(..), addSubTree, blankQuery, categoryConstructor, datasetDecoder, dateConverter, dimValueConstructor, dimensionDecoder, getDataset, getLeafConfig, getTree, helper001, helper002, iterator, leafConfigDecoder, leafConstructor, leafDecoder, partialDimensionDecoder, queryEncoder, queryToString, setHidden, setLeafConfig, ssbTreesUrl, subListDecoder, treeDecoder, treeListDecoder)
 
 import Http
 import HttpUtil
@@ -14,7 +14,7 @@ ssbTreesUrl =
 
 type Tree
     = Category { id : String, text : String, subTree : List Tree, isHidden : Bool }
-    | Leaf { id : String, text : String, config : Maybe Config, isHidden : Bool }
+    | Leaf { id : String, text : String, config : Maybe Config }
 
 
 type alias Query =
@@ -146,7 +146,7 @@ categoryConstructor id text subTree =
 
 
 leafConstructor id text =
-    Leaf { id = id, text = text, config = Nothing, isHidden = False }
+    Leaf { id = id, text = text, config = Nothing }
 
 
 dimValueConstructor value valueText =
@@ -185,15 +185,15 @@ addSubTree subTree id tree =
             tree
 
 
-addLeafConfig : Config -> String -> Tree -> Tree
-addLeafConfig config id tree =
+setLeafConfig : Config -> String -> Tree -> Tree
+setLeafConfig config id tree =
     case tree of
         Category list ->
-            Category { list | subTree = List.map (addLeafConfig config id) list.subTree }
+            Category { list | subTree = List.map (setLeafConfig config id) list.subTree }
 
         Leaf leaf ->
             if leaf.id == id then
-                Leaf { leaf | config = Just config, isHidden = False }
+                Leaf { leaf | config = Just config }
 
             else
                 tree
@@ -210,12 +210,8 @@ setHidden bool id tree =
                 Category
                     { list | subTree = List.map (setHidden bool id) list.subTree }
 
-        Leaf leaf ->
-            if leaf.id == id then
-                Leaf { leaf | isHidden = bool }
-
-            else
-                Leaf { leaf | isHidden = True }
+        l ->
+            l
 
 
 treeListDecoder id =

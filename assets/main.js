@@ -4526,12 +4526,11 @@ var author$project$Dataset$ssbTreesUrl = 'http://data.ssb.no/api/v0/en/table/';
 var author$project$Dataset$Leaf = function (a) {
 	return {$: 'Leaf', a: a};
 };
-var elm$core$Basics$False = {$: 'False'};
 var elm$core$Maybe$Nothing = {$: 'Nothing'};
 var author$project$Dataset$leafConstructor = F2(
 	function (id, text) {
 		return author$project$Dataset$Leaf(
-			{config: elm$core$Maybe$Nothing, id: id, isHidden: false, text: text});
+			{config: elm$core$Maybe$Nothing, id: id, text: text});
 	});
 var elm$core$Maybe$Just = function (a) {
 	return {$: 'Just', a: a};
@@ -4768,6 +4767,7 @@ var elm$core$Array$builderToArray = F2(
 				builder.tail);
 		}
 	});
+var elm$core$Basics$False = {$: 'False'};
 var elm$core$Basics$idiv = _Basics_idiv;
 var elm$core$Basics$lt = _Utils_lt;
 var elm$core$Elm$JsArray$initialize = _JsArray_initialize;
@@ -5724,7 +5724,7 @@ var author$project$Dataset$getTree = function (id) {
 var author$project$Main$GotRoot = function (a) {
 	return {$: 'GotRoot', a: a};
 };
-var author$project$Main$defaultModel = {dataset: elm$core$Maybe$Nothing, errorMsg: elm$core$Maybe$Nothing, hovered: elm$core$Maybe$Nothing, isLoading: false, query: elm$core$Maybe$Nothing, trees: _List_Nil};
+var author$project$Main$defaultModel = {dataset: elm$core$Maybe$Nothing, datasetConfig: elm$core$Maybe$Nothing, errorMsg: elm$core$Maybe$Nothing, hovered: elm$core$Maybe$Nothing, query: elm$core$Maybe$Nothing, showTree: false, trees: _List_Nil};
 var elm$core$Basics$composeL = F3(
 	function (g, f, x) {
 		return g(
@@ -6009,14 +6009,8 @@ var author$project$Dataset$setHidden = F3(
 							list.subTree)
 					}));
 		} else {
-			var leaf = tree.a;
-			return _Utils_eq(leaf.id, id) ? author$project$Dataset$Leaf(
-				_Utils_update(
-					leaf,
-					{isHidden: bool})) : author$project$Dataset$Leaf(
-				_Utils_update(
-					leaf,
-					{isHidden: true}));
+			var l = tree;
+			return l;
 		}
 	});
 var author$project$Main$GotSubTree = F2(
@@ -6030,30 +6024,6 @@ var author$project$Main$errorModel = function (errorMsg) {
 			errorMsg: elm$core$Maybe$Just(errorMsg)
 		});
 };
-var author$project$Dataset$addLeafConfig = F3(
-	function (config, id, tree) {
-		if (tree.$ === 'Category') {
-			var list = tree.a;
-			return author$project$Dataset$Category(
-				_Utils_update(
-					list,
-					{
-						subTree: A2(
-							elm$core$List$map,
-							A2(author$project$Dataset$addLeafConfig, config, id),
-							list.subTree)
-					}));
-		} else {
-			var leaf = tree.a;
-			return _Utils_eq(leaf.id, id) ? author$project$Dataset$Leaf(
-				_Utils_update(
-					leaf,
-					{
-						config: elm$core$Maybe$Just(config),
-						isHidden: false
-					})) : tree;
-		}
-	});
 var author$project$Dataset$blankQuery = F2(
 	function (id, config) {
 		return {
@@ -6231,6 +6201,29 @@ var author$project$Dataset$getLeafConfig = function (id) {
 		_Utils_ap(author$project$Dataset$ssbTreesUrl, id),
 		author$project$Dataset$leafConfigDecoder);
 };
+var author$project$Dataset$setLeafConfig = F3(
+	function (config, id, tree) {
+		if (tree.$ === 'Category') {
+			var list = tree.a;
+			return author$project$Dataset$Category(
+				_Utils_update(
+					list,
+					{
+						subTree: A2(
+							elm$core$List$map,
+							A2(author$project$Dataset$setLeafConfig, config, id),
+							list.subTree)
+					}));
+		} else {
+			var leaf = tree.a;
+			return _Utils_eq(leaf.id, id) ? author$project$Dataset$Leaf(
+				_Utils_update(
+					leaf,
+					{
+						config: elm$core$Maybe$Just(config)
+					})) : tree;
+		}
+	});
 var author$project$Main$DGotConfig = F2(
 	function (a, b) {
 		return {$: 'DGotConfig', a: a, b: b};
@@ -6241,38 +6234,8 @@ var author$project$Main$DGotData = function (a) {
 var author$project$Main$DatasetMessage = function (a) {
 	return {$: 'DatasetMessage', a: a};
 };
-var author$project$Main$notLoading = function (model) {
-	return _Utils_update(
-		model,
-		{isLoading: false});
-};
-var author$project$Main$updateTrees = F2(
-	function (trees, model) {
-		return author$project$Main$notLoading(
-			_Utils_update(
-				model,
-				{trees: trees}));
-	});
-var author$project$Main$updateTree = F3(
-	function (id, f, model) {
-		return A2(
-			author$project$Main$updateTrees,
-			A2(
-				elm$core$List$map,
-				f(id),
-				model.trees),
-			model);
-	});
-var author$project$Main$hide = function (id) {
-	return A2(
-		author$project$Main$updateTree,
-		id,
-		author$project$Dataset$setHidden(true));
-};
-var author$project$Main$setLoading = function (model) {
-	return _Utils_update(
-		model,
-		{isLoading: true});
+var author$project$Main$HttpError = function (a) {
+	return {$: 'HttpError', a: a};
 };
 var author$project$Main$setQuery = F2(
 	function (query, model) {
@@ -6280,12 +6243,17 @@ var author$project$Main$setQuery = F2(
 			model,
 			{query: query});
 	});
-var author$project$Main$show = function (id) {
-	return A2(
-		author$project$Main$updateTree,
-		id,
-		author$project$Dataset$setHidden(false));
-};
+var author$project$Main$updateTree = F3(
+	function (id, f, model) {
+		return _Utils_update(
+			model,
+			{
+				trees: A2(
+					elm$core$List$map,
+					f(id),
+					model.trees)
+			});
+	});
 var author$project$Util$replaceIf = F3(
 	function (predicate, value, list) {
 		return A2(
@@ -6295,37 +6263,19 @@ var author$project$Util$replaceIf = F3(
 			},
 			list);
 	});
+var elm$core$Basics$neq = _Utils_notEqual;
 var elm$core$Debug$toString = _Debug_toString;
 var elm$core$Platform$Cmd$batch = _Platform_batch;
 var elm$core$Platform$Cmd$none = elm$core$Platform$Cmd$batch(_List_Nil);
 var author$project$Main$handleDatasetMsg = F2(
 	function (msg, model) {
 		switch (msg.$) {
-			case 'DShow':
-				var id = msg.a;
-				var config = msg.b;
-				return _Utils_Tuple2(
-					A2(
-						elm$core$Basics$composeL,
-						author$project$Main$setQuery(
-							elm$core$Maybe$Just(
-								A2(author$project$Dataset$blankQuery, id, config))),
-						author$project$Main$show(id))(model),
-					elm$core$Platform$Cmd$none);
-			case 'DHide':
-				var id = msg.a;
-				return _Utils_Tuple2(
-					A2(
-						elm$core$Basics$composeL,
-						author$project$Main$setQuery(elm$core$Maybe$Nothing),
-						author$project$Main$hide(id))(model),
-					elm$core$Platform$Cmd$none);
 			case 'DGetData':
 				var _n1 = model.query;
 				if (_n1.$ === 'Just') {
 					var q = _n1.a;
 					return _Utils_Tuple2(
-						author$project$Main$setLoading(model),
+						model,
 						A2(
 							elm$core$Task$attempt,
 							function (x) {
@@ -6343,14 +6293,13 @@ var author$project$Main$handleDatasetMsg = F2(
 				if (result.$ === 'Ok') {
 					var dataset = result.a;
 					return _Utils_Tuple2(
-						author$project$Main$notLoading(
-							_Utils_update(
-								model,
-								{
-									dataset: elm$core$Maybe$Just(dataset),
-									errorMsg: elm$core$Maybe$Just(
-										elm$core$Debug$toString(dataset))
-								})),
+						_Utils_update(
+							model,
+							{
+								dataset: elm$core$Maybe$Just(dataset),
+								errorMsg: elm$core$Maybe$Just(
+									elm$core$Debug$toString(dataset))
+							}),
 						elm$core$Platform$Cmd$none);
 				} else {
 					var e = result.a;
@@ -6391,41 +6340,47 @@ var author$project$Main$handleDatasetMsg = F2(
 					model,
 					A2(
 						elm$core$Task$attempt,
-						function (x) {
-							return author$project$Main$DatasetMessage(
-								A2(author$project$Main$DGotConfig, id, x));
+						function (result) {
+							if (result.$ === 'Ok') {
+								var config = result.a;
+								return author$project$Main$DatasetMessage(
+									A2(author$project$Main$DGotConfig, id, config));
+							} else {
+								var e = result.a;
+								return author$project$Main$HttpError(e);
+							}
 						},
 						author$project$Dataset$getLeafConfig(id)));
 			case 'DGotConfig':
 				var id = msg.a;
-				var result = msg.b;
-				if (result.$ === 'Ok') {
-					var config = result.a;
-					return _Utils_Tuple2(
-						A2(
-							elm$core$Basics$composeL,
-							author$project$Main$setQuery(
-								elm$core$Maybe$Just(
-									A2(author$project$Dataset$blankQuery, id, config))),
-							A2(
-								author$project$Main$updateTree,
-								id,
-								F2(
-									function (x, y) {
-										return A3(
-											author$project$Dataset$addLeafConfig,
-											config,
-											x,
-											A3(author$project$Dataset$setHidden, false, x, y));
-									})))(model),
-						elm$core$Platform$Cmd$none);
-				} else {
-					var e = result.a;
-					return _Utils_Tuple2(
-						author$project$Main$errorModel(
-							elm$core$Debug$toString(e)),
-						elm$core$Platform$Cmd$none);
-				}
+				var config = msg.b;
+				var newModel = A3(
+					author$project$Main$updateTree,
+					id,
+					author$project$Dataset$setLeafConfig(config),
+					A2(
+						author$project$Main$setQuery,
+						elm$core$Maybe$Just(
+							A2(author$project$Dataset$blankQuery, id, config)),
+						model));
+				return _Utils_Tuple2(
+					_Utils_update(
+						newModel,
+						{
+							datasetConfig: elm$core$Maybe$Just(config),
+							showTree: false
+						}),
+					elm$core$Platform$Cmd$none);
+			case 'DSetConfig':
+				var config = msg.a;
+				return _Utils_Tuple2(
+					_Utils_update(
+						model,
+						{
+							datasetConfig: config,
+							showTree: !_Utils_eq(config, elm$core$Maybe$Nothing)
+						}),
+					elm$core$Platform$Cmd$none);
 			default:
 				var _n5 = model.query;
 				if (_n5.$ === 'Just') {
@@ -6445,11 +6400,41 @@ var author$project$Main$handleDatasetMsg = F2(
 				}
 		}
 	});
+var author$project$Main$hide = function (id) {
+	return A2(
+		author$project$Main$updateTree,
+		id,
+		author$project$Dataset$setHidden(true));
+};
+var author$project$Main$show = function (id) {
+	return A2(
+		author$project$Main$updateTree,
+		id,
+		author$project$Dataset$setHidden(false));
+};
+var elm$core$Basics$not = _Basics_not;
+var elm$core$List$isEmpty = function (xs) {
+	if (!xs.b) {
+		return true;
+	} else {
+		return false;
+	}
+};
 var author$project$Main$update = F2(
 	function (msg, model) {
 		switch (msg.$) {
 			case 'Pass':
 				return _Utils_Tuple2(model, elm$core$Platform$Cmd$none);
+			case 'ShowTree':
+				var cmd = elm$core$List$isEmpty(model.trees) ? A2(
+					elm$core$Task$attempt,
+					author$project$Main$GotRoot,
+					author$project$Dataset$getTree('')) : elm$core$Platform$Cmd$none;
+				return _Utils_Tuple2(
+					_Utils_update(
+						model,
+						{showTree: !model.showTree}),
+					cmd);
 			case 'Hover':
 				var hovered = msg.a;
 				return _Utils_Tuple2(
@@ -6465,6 +6450,16 @@ var author$project$Main$update = F2(
 						{
 							errorMsg: elm$core$Maybe$Just(
 								A2(elm$core$String$join, '', s))
+						}),
+					elm$core$Platform$Cmd$none);
+			case 'HttpError':
+				var e = msg.a;
+				return _Utils_Tuple2(
+					_Utils_update(
+						model,
+						{
+							errorMsg: elm$core$Maybe$Just(
+								elm$core$Debug$toString(e))
 						}),
 					elm$core$Platform$Cmd$none);
 			case 'ShowQuery':
@@ -6484,7 +6479,7 @@ var author$project$Main$update = F2(
 				}
 			case 'GetRoot':
 				return _Utils_Tuple2(
-					author$project$Main$setLoading(model),
+					model,
 					A2(
 						elm$core$Task$attempt,
 						author$project$Main$GotRoot,
@@ -6515,7 +6510,9 @@ var author$project$Main$update = F2(
 				if (result.$ === 'Ok') {
 					var trees = result.a;
 					return _Utils_Tuple2(
-						A2(author$project$Main$updateTrees, trees, model),
+						_Utils_update(
+							model,
+							{showTree: !model.showTree, trees: trees}),
 						elm$core$Platform$Cmd$none);
 				} else {
 					var e = result.a;
@@ -6554,6 +6551,307 @@ var author$project$Main$update = F2(
 	});
 var author$project$Main$Hover = function (a) {
 	return {$: 'Hover', a: a};
+};
+var author$project$Main$DGetData = {$: 'DGetData'};
+var abadi199$elm_input_extra$MultiSelect$Option = F3(
+	function (value, text, selected) {
+		return {selected: selected, text: text, value: value};
+	});
+var elm$json$Json$Decode$bool = _Json_decodeBool;
+var abadi199$elm_input_extra$MultiSelect$optionDecoder = A4(
+	elm$json$Json$Decode$map3,
+	abadi199$elm_input_extra$MultiSelect$Option,
+	A2(elm$json$Json$Decode$field, 'value', elm$json$Json$Decode$string),
+	A2(elm$json$Json$Decode$field, 'text', elm$json$Json$Decode$string),
+	A2(elm$json$Json$Decode$field, 'selected', elm$json$Json$Decode$bool));
+var elm$core$Basics$composeR = F3(
+	function (f, g, x) {
+		return g(
+			f(x));
+	});
+var elm$core$Maybe$map = F2(
+	function (f, maybe) {
+		if (maybe.$ === 'Just') {
+			var value = maybe.a;
+			return elm$core$Maybe$Just(
+				f(value));
+		} else {
+			return elm$core$Maybe$Nothing;
+		}
+	});
+var elm$json$Json$Decode$oneOf = _Json_oneOf;
+var elm$json$Json$Decode$maybe = function (decoder) {
+	return elm$json$Json$Decode$oneOf(
+		_List_fromArray(
+			[
+				A2(elm$json$Json$Decode$map, elm$core$Maybe$Just, decoder),
+				elm$json$Json$Decode$succeed(elm$core$Maybe$Nothing)
+			]));
+};
+var abadi199$elm_input_extra$MultiSelect$optionsDecoder = function () {
+	var loop = F2(
+		function (idx, xs) {
+			return A2(
+				elm$json$Json$Decode$andThen,
+				A2(
+					elm$core$Basics$composeR,
+					elm$core$Maybe$map(
+						function (x) {
+							return A2(
+								loop,
+								idx + 1,
+								A2(elm$core$List$cons, x, xs));
+						}),
+					elm$core$Maybe$withDefault(
+						elm$json$Json$Decode$succeed(xs))),
+				elm$json$Json$Decode$maybe(
+					A2(
+						elm$json$Json$Decode$field,
+						elm$core$String$fromInt(idx),
+						abadi199$elm_input_extra$MultiSelect$optionDecoder)));
+		});
+	return A2(
+		elm$json$Json$Decode$map,
+		elm$core$List$reverse,
+		A2(
+			elm$json$Json$Decode$field,
+			'options',
+			A2(loop, 0, _List_Nil)));
+}();
+var abadi199$elm_input_extra$MultiSelect$selectedOptionsDecoder = function () {
+	var filterSelected = function (options) {
+		return A2(
+			elm$core$List$map,
+			function ($) {
+				return $.value;
+			},
+			A2(
+				elm$core$List$filter,
+				function ($) {
+					return $.selected;
+				},
+				options));
+	};
+	return A2(
+		elm$json$Json$Decode$map,
+		filterSelected,
+		A2(elm$json$Json$Decode$field, 'target', abadi199$elm_input_extra$MultiSelect$optionsDecoder));
+}();
+var elm$virtual_dom$VirtualDom$Normal = function (a) {
+	return {$: 'Normal', a: a};
+};
+var elm$virtual_dom$VirtualDom$toHandlerInt = function (handler) {
+	switch (handler.$) {
+		case 'Normal':
+			return 0;
+		case 'MayStopPropagation':
+			return 1;
+		case 'MayPreventDefault':
+			return 2;
+		default:
+			return 3;
+	}
+};
+var elm$virtual_dom$VirtualDom$on = _VirtualDom_on;
+var elm$html$Html$Events$on = F2(
+	function (event, decoder) {
+		return A2(
+			elm$virtual_dom$VirtualDom$on,
+			event,
+			elm$virtual_dom$VirtualDom$Normal(decoder));
+	});
+var abadi199$elm_input_extra$MultiSelect$onChange = function (tagger) {
+	return A2(
+		elm$html$Html$Events$on,
+		'change',
+		A2(elm$json$Json$Decode$map, tagger, abadi199$elm_input_extra$MultiSelect$selectedOptionsDecoder));
+};
+var elm$core$List$any = F2(
+	function (isOkay, list) {
+		any:
+		while (true) {
+			if (!list.b) {
+				return false;
+			} else {
+				var x = list.a;
+				var xs = list.b;
+				if (isOkay(x)) {
+					return true;
+				} else {
+					var $temp$isOkay = isOkay,
+						$temp$list = xs;
+					isOkay = $temp$isOkay;
+					list = $temp$list;
+					continue any;
+				}
+			}
+		}
+	});
+var elm$html$Html$option = _VirtualDom_node('option');
+var elm$html$Html$select = _VirtualDom_node('select');
+var elm$virtual_dom$VirtualDom$text = _VirtualDom_text;
+var elm$html$Html$text = elm$virtual_dom$VirtualDom$text;
+var elm$json$Json$Encode$bool = _Json_wrap;
+var elm$html$Html$Attributes$boolProperty = F2(
+	function (key, bool) {
+		return A2(
+			_VirtualDom_property,
+			key,
+			elm$json$Json$Encode$bool(bool));
+	});
+var elm$html$Html$Attributes$disabled = elm$html$Html$Attributes$boolProperty('disabled');
+var elm$html$Html$Attributes$multiple = elm$html$Html$Attributes$boolProperty('multiple');
+var elm$html$Html$Attributes$selected = elm$html$Html$Attributes$boolProperty('selected');
+var elm$html$Html$Attributes$stringProperty = F2(
+	function (key, string) {
+		return A2(
+			_VirtualDom_property,
+			key,
+			elm$json$Json$Encode$string(string));
+	});
+var elm$html$Html$Attributes$value = elm$html$Html$Attributes$stringProperty('value');
+var abadi199$elm_input_extra$MultiSelect$multiSelect = F3(
+	function (options, attributes, currentValue) {
+		var isSelected = function (value) {
+			return A2(
+				elm$core$List$any,
+				elm$core$Basics$eq(value),
+				currentValue);
+		};
+		var toOption = function (_n0) {
+			var value = _n0.value;
+			var text = _n0.text;
+			var enabled = _n0.enabled;
+			return A2(
+				elm$html$Html$option,
+				_List_fromArray(
+					[
+						elm$html$Html$Attributes$value(value),
+						elm$html$Html$Attributes$selected(
+						isSelected(value)),
+						elm$html$Html$Attributes$disabled(!enabled)
+					]),
+				_List_fromArray(
+					[
+						elm$html$Html$text(text)
+					]));
+		};
+		return A2(
+			elm$html$Html$select,
+			_Utils_ap(
+				attributes,
+				_List_fromArray(
+					[
+						abadi199$elm_input_extra$MultiSelect$onChange(options.onChange),
+						elm$html$Html$Attributes$multiple(true)
+					])),
+			A2(elm$core$List$map, toOption, options.items));
+	});
+var abadi199$elm_input_extra$MultiSelect$defaultOptions = function (onChangeHandler) {
+	return {items: _List_Nil, onChange: onChangeHandler};
+};
+var author$project$Main$DSetQueryDimension = function (a) {
+	return {$: 'DSetQueryDimension', a: a};
+};
+var author$project$Util$any = F2(
+	function (predicate, list) {
+		return A3(
+			elm$core$List$foldl,
+			F2(
+				function (a, b) {
+					return b || predicate(a);
+				}),
+			false,
+			list);
+	});
+var author$project$Main$onQueryChange = F2(
+	function (dimension, s) {
+		return author$project$Main$DatasetMessage(
+			author$project$Main$DSetQueryDimension(
+				_Utils_update(
+					dimension,
+					{
+						values: A2(
+							elm$core$List$filter,
+							function (v) {
+								return A2(
+									author$project$Util$any,
+									function (x) {
+										return _Utils_eq(x, v.value);
+									},
+									s);
+							},
+							dimension.values)
+					})));
+	});
+var author$project$Main$querySelectOptions = function (dimension) {
+	var defaultOptions = abadi199$elm_input_extra$MultiSelect$defaultOptions(
+		author$project$Main$onQueryChange(dimension));
+	return _Utils_update(
+		defaultOptions,
+		{
+			items: A2(
+				elm$core$List$map,
+				function (v) {
+					return {enabled: true, text: v.valueText, value: v.value};
+				},
+				dimension.values)
+		});
+};
+var author$project$Main$dimensionHtml = function (dimension) {
+	return A3(
+		abadi199$elm_input_extra$MultiSelect$multiSelect,
+		author$project$Main$querySelectOptions(dimension),
+		_List_Nil,
+		_List_Nil);
+};
+var elm$html$Html$button = _VirtualDom_node('button');
+var elm$html$Html$div = _VirtualDom_node('div');
+var elm$html$Html$Attributes$class = elm$html$Html$Attributes$stringProperty('className');
+var elm$html$Html$Events$onClick = function (msg) {
+	return A2(
+		elm$html$Html$Events$on,
+		'click',
+		elm$json$Json$Decode$succeed(msg));
+};
+var author$project$Main$configHtml = function (config) {
+	return A2(
+		elm$html$Html$div,
+		_List_fromArray(
+			[
+				elm$html$Html$Attributes$class('view__config_div')
+			]),
+		function () {
+			if (config.$ === 'Just') {
+				var c = config.a;
+				return _Utils_ap(
+					A2(
+						elm$core$List$map,
+						function (v) {
+							return author$project$Main$dimensionHtml(v);
+						},
+						c.dimensions),
+					_List_fromArray(
+						[
+							A2(
+							elm$html$Html$button,
+							_List_fromArray(
+								[
+									elm$html$Html$Events$onClick(
+									author$project$Main$DatasetMessage(author$project$Main$DGetData))
+								]),
+							_List_fromArray(
+								[
+									elm$html$Html$text('Show graph')
+								]))
+						]));
+			} else {
+				return _List_fromArray(
+					[
+						elm$html$Html$text('')
+					]);
+			}
+		}());
 };
 var avh4$elm_color$Color$RgbaSpace = F4(
 	function (a, b, c, d) {
@@ -6606,25 +6904,10 @@ var elm$core$Basics$always = F2(
 	function (a, _n0) {
 		return a;
 	});
-var elm$core$Basics$composeR = F3(
-	function (f, g, x) {
-		return g(
-			f(x));
-	});
 var author$project$Util$last = A2(
 	elm$core$List$foldl,
 	A2(elm$core$Basics$composeR, elm$core$Maybe$Just, elm$core$Basics$always),
 	elm$core$Maybe$Nothing);
-var elm$core$Maybe$map = F2(
-	function (f, maybe) {
-		if (maybe.$ === 'Just') {
-			var value = maybe.a;
-			return elm$core$Maybe$Just(
-				f(value));
-		} else {
-			return elm$core$Maybe$Nothing;
-		}
-	});
 var author$project$Dataset$dateConverter = function (dataset) {
 	var _n0 = author$project$Util$last(dataset.dimensions);
 	if (_n0.$ === 'Just') {
@@ -6910,7 +7193,6 @@ var author$project$Util$slice = F3(
 			end - start,
 			A2(elm$core$List$drop, start, list));
 	});
-var elm$core$Basics$neq = _Utils_notEqual;
 var elm$core$List$repeatHelp = F3(
 	function (result, n, value) {
 		repeatHelp:
@@ -7039,18 +7321,6 @@ var terezka$line_charts$Internal$Line$line = F4(
 			A5(terezka$line_charts$Internal$Line$SeriesConfig, color_, shape_, _List_Nil, label_, data_));
 	});
 var terezka$line_charts$LineChart$line = terezka$line_charts$Internal$Line$line;
-var elm$virtual_dom$VirtualDom$toHandlerInt = function (handler) {
-	switch (handler.$) {
-		case 'Normal':
-			return 0;
-		case 'MayStopPropagation':
-			return 1;
-		case 'MayPreventDefault':
-			return 2;
-		default:
-			return 3;
-	}
-};
 var elm$svg$Svg$trustedNode = _VirtualDom_nodeNS('http://www.w3.org/2000/svg');
 var elm$svg$Svg$defs = elm$svg$Svg$trustedNode('defs');
 var elm$svg$Svg$g = elm$svg$Svg$trustedNode('g');
@@ -7534,7 +7804,6 @@ var terezka$line_charts$Internal$Svg$xTick = F5(
 				]));
 		return A2(elm$svg$Svg$line, attributes, _List_Nil);
 	});
-var elm$virtual_dom$VirtualDom$text = _VirtualDom_text;
 var elm$svg$Svg$text = elm$virtual_dom$VirtualDom$text;
 var terezka$line_charts$Internal$Utils$viewMaybe = F2(
 	function (a, view) {
@@ -9365,7 +9634,6 @@ var terezka$line_charts$LineChart$clipPath = function (system) {
 				_List_Nil)
 			]));
 };
-var elm$html$Html$div = _VirtualDom_node('div');
 var elm$virtual_dom$VirtualDom$style = _VirtualDom_style;
 var elm$html$Html$Attributes$style = elm$virtual_dom$VirtualDom$style;
 var terezka$line_charts$Internal$Container$sizeStyles = F3(
@@ -10045,7 +10313,6 @@ var terezka$line_charts$Internal$Axis$Values$getBeginning = F2(
 	});
 var elm$core$Basics$ge = _Utils_ge;
 var elm$core$String$toFloat = _String_toFloat;
-var elm$core$Basics$not = _Basics_not;
 var elm$core$Basics$isInfinite = _Basics_isInfinite;
 var elm$core$String$length = _String_length;
 var elm$core$String$cons = _String_cons;
@@ -10077,27 +10344,6 @@ var elm$core$String$padRight = F3(
 	});
 var elm$core$String$reverse = _String_reverse;
 var elm$core$String$slice = _String_slice;
-var elm$core$List$any = F2(
-	function (isOkay, list) {
-		any:
-		while (true) {
-			if (!list.b) {
-				return false;
-			} else {
-				var x = list.a;
-				var xs = list.b;
-				if (isOkay(x)) {
-					return true;
-				} else {
-					var $temp$isOkay = isOkay,
-						$temp$list = xs;
-					isOkay = $temp$isOkay;
-					list = $temp$list;
-					continue any;
-				}
-			}
-		}
-	});
 var elm$core$String$foldr = _String_foldr;
 var elm$core$String$toList = function (string) {
 	return A3(elm$core$String$foldr, elm$core$List$cons, _List_Nil, string);
@@ -10521,13 +10767,6 @@ var terezka$line_charts$Internal$Axis$default = F3(
 			});
 	});
 var terezka$line_charts$LineChart$Axis$default = terezka$line_charts$Internal$Axis$default;
-var elm$core$List$isEmpty = function (xs) {
-	if (!xs.b) {
-		return true;
-	} else {
-		return false;
-	}
-};
 var terezka$line_charts$LineChart$Axis$Tick$Day = {$: 'Day'};
 var terezka$line_charts$LineChart$Axis$Tick$Hour = {$: 'Hour'};
 var terezka$line_charts$LineChart$Axis$Tick$Millisecond = {$: 'Millisecond'};
@@ -12447,7 +12686,6 @@ var terezka$line_charts$Internal$Events$getWithin = function (radius) {
 var elm$virtual_dom$VirtualDom$Custom = function (a) {
 	return {$: 'Custom', a: a};
 };
-var elm$virtual_dom$VirtualDom$on = _VirtualDom_on;
 var elm$html$Html$Events$custom = F2(
 	function (event, decoder) {
 		return A2(
@@ -12481,7 +12719,6 @@ var debois$elm_dom$DOM$offsetHeight = A2(elm$json$Json$Decode$field, 'offsetHeig
 var debois$elm_dom$DOM$offsetWidth = A2(elm$json$Json$Decode$field, 'offsetWidth', elm$json$Json$Decode$float);
 var debois$elm_dom$DOM$offsetLeft = A2(elm$json$Json$Decode$field, 'offsetLeft', elm$json$Json$Decode$float);
 var elm$json$Json$Decode$null = _Json_decodeNull;
-var elm$json$Json$Decode$oneOf = _Json_oneOf;
 var debois$elm_dom$DOM$offsetParent = F2(
 	function (x, decoder) {
 		return elm$json$Json$Decode$oneOf(
@@ -12618,16 +12855,6 @@ var terezka$line_charts$Internal$Events$on = F3(
 							A2(terezka$line_charts$Internal$Events$map, toMsg, decoder)));
 				}));
 	});
-var elm$virtual_dom$VirtualDom$Normal = function (a) {
-	return {$: 'Normal', a: a};
-};
-var elm$html$Html$Events$on = F2(
-	function (event, decoder) {
-		return A2(
-			elm$virtual_dom$VirtualDom$on,
-			event,
-			elm$virtual_dom$VirtualDom$Normal(decoder));
-	});
 var elm$svg$Svg$Events$on = elm$html$Html$Events$on;
 var terezka$line_charts$Internal$Events$onMouseLeave = function (msg) {
 	return A2(
@@ -12680,7 +12907,6 @@ var terezka$line_charts$Internal$Junk$Config = function (a) {
 	return {$: 'Config', a: a};
 };
 var elm$html$Html$p = _VirtualDom_node('p');
-var elm$html$Html$text = elm$virtual_dom$VirtualDom$text;
 var terezka$line_charts$Internal$Junk$find = F2(
 	function (hovered, data) {
 		find:
@@ -13067,262 +13293,29 @@ var author$project$Main$viewChart = F2(
 			return elm$html$Html$text('No Dataset');
 		}
 	});
-var author$project$Main$GetRoot = {$: 'GetRoot'};
-var author$project$Main$DGetData = {$: 'DGetData'};
-var abadi199$elm_input_extra$MultiSelect$Option = F3(
-	function (value, text, selected) {
-		return {selected: selected, text: text, value: value};
-	});
-var elm$json$Json$Decode$bool = _Json_decodeBool;
-var abadi199$elm_input_extra$MultiSelect$optionDecoder = A4(
-	elm$json$Json$Decode$map3,
-	abadi199$elm_input_extra$MultiSelect$Option,
-	A2(elm$json$Json$Decode$field, 'value', elm$json$Json$Decode$string),
-	A2(elm$json$Json$Decode$field, 'text', elm$json$Json$Decode$string),
-	A2(elm$json$Json$Decode$field, 'selected', elm$json$Json$Decode$bool));
-var elm$json$Json$Decode$maybe = function (decoder) {
-	return elm$json$Json$Decode$oneOf(
-		_List_fromArray(
-			[
-				A2(elm$json$Json$Decode$map, elm$core$Maybe$Just, decoder),
-				elm$json$Json$Decode$succeed(elm$core$Maybe$Nothing)
-			]));
-};
-var abadi199$elm_input_extra$MultiSelect$optionsDecoder = function () {
-	var loop = F2(
-		function (idx, xs) {
-			return A2(
-				elm$json$Json$Decode$andThen,
-				A2(
-					elm$core$Basics$composeR,
-					elm$core$Maybe$map(
-						function (x) {
-							return A2(
-								loop,
-								idx + 1,
-								A2(elm$core$List$cons, x, xs));
-						}),
-					elm$core$Maybe$withDefault(
-						elm$json$Json$Decode$succeed(xs))),
-				elm$json$Json$Decode$maybe(
-					A2(
-						elm$json$Json$Decode$field,
-						elm$core$String$fromInt(idx),
-						abadi199$elm_input_extra$MultiSelect$optionDecoder)));
-		});
-	return A2(
-		elm$json$Json$Decode$map,
-		elm$core$List$reverse,
-		A2(
-			elm$json$Json$Decode$field,
-			'options',
-			A2(loop, 0, _List_Nil)));
-}();
-var abadi199$elm_input_extra$MultiSelect$selectedOptionsDecoder = function () {
-	var filterSelected = function (options) {
-		return A2(
-			elm$core$List$map,
-			function ($) {
-				return $.value;
-			},
-			A2(
-				elm$core$List$filter,
-				function ($) {
-					return $.selected;
-				},
-				options));
-	};
-	return A2(
-		elm$json$Json$Decode$map,
-		filterSelected,
-		A2(elm$json$Json$Decode$field, 'target', abadi199$elm_input_extra$MultiSelect$optionsDecoder));
-}();
-var abadi199$elm_input_extra$MultiSelect$onChange = function (tagger) {
-	return A2(
-		elm$html$Html$Events$on,
-		'change',
-		A2(elm$json$Json$Decode$map, tagger, abadi199$elm_input_extra$MultiSelect$selectedOptionsDecoder));
-};
-var elm$html$Html$option = _VirtualDom_node('option');
-var elm$html$Html$select = _VirtualDom_node('select');
-var elm$json$Json$Encode$bool = _Json_wrap;
-var elm$html$Html$Attributes$boolProperty = F2(
-	function (key, bool) {
-		return A2(
-			_VirtualDom_property,
-			key,
-			elm$json$Json$Encode$bool(bool));
-	});
-var elm$html$Html$Attributes$disabled = elm$html$Html$Attributes$boolProperty('disabled');
-var elm$html$Html$Attributes$multiple = elm$html$Html$Attributes$boolProperty('multiple');
-var elm$html$Html$Attributes$selected = elm$html$Html$Attributes$boolProperty('selected');
-var elm$html$Html$Attributes$stringProperty = F2(
-	function (key, string) {
-		return A2(
-			_VirtualDom_property,
-			key,
-			elm$json$Json$Encode$string(string));
-	});
-var elm$html$Html$Attributes$value = elm$html$Html$Attributes$stringProperty('value');
-var abadi199$elm_input_extra$MultiSelect$multiSelect = F3(
-	function (options, attributes, currentValue) {
-		var isSelected = function (value) {
-			return A2(
-				elm$core$List$any,
-				elm$core$Basics$eq(value),
-				currentValue);
-		};
-		var toOption = function (_n0) {
-			var value = _n0.value;
-			var text = _n0.text;
-			var enabled = _n0.enabled;
-			return A2(
-				elm$html$Html$option,
-				_List_fromArray(
-					[
-						elm$html$Html$Attributes$value(value),
-						elm$html$Html$Attributes$selected(
-						isSelected(value)),
-						elm$html$Html$Attributes$disabled(!enabled)
-					]),
-				_List_fromArray(
-					[
-						elm$html$Html$text(text)
-					]));
-		};
-		return A2(
-			elm$html$Html$select,
-			_Utils_ap(
-				attributes,
-				_List_fromArray(
-					[
-						abadi199$elm_input_extra$MultiSelect$onChange(options.onChange),
-						elm$html$Html$Attributes$multiple(true)
-					])),
-			A2(elm$core$List$map, toOption, options.items));
-	});
-var abadi199$elm_input_extra$MultiSelect$defaultOptions = function (onChangeHandler) {
-	return {items: _List_Nil, onChange: onChangeHandler};
-};
-var author$project$Main$DSetQueryDimension = function (a) {
-	return {$: 'DSetQueryDimension', a: a};
-};
-var author$project$Util$any = F2(
-	function (predicate, list) {
-		return A3(
-			elm$core$List$foldl,
-			F2(
-				function (a, b) {
-					return b || predicate(a);
-				}),
-			false,
-			list);
-	});
-var author$project$Main$onQueryChange = F2(
-	function (dimension, s) {
-		return author$project$Main$DatasetMessage(
-			author$project$Main$DSetQueryDimension(
-				_Utils_update(
-					dimension,
-					{
-						values: A2(
-							elm$core$List$filter,
-							function (v) {
-								return A2(
-									author$project$Util$any,
-									function (x) {
-										return _Utils_eq(x, v.value);
-									},
-									s);
-							},
-							dimension.values)
-					})));
-	});
-var author$project$Main$querySelectOptions = function (dimension) {
-	var defaultOptions = abadi199$elm_input_extra$MultiSelect$defaultOptions(
-		author$project$Main$onQueryChange(dimension));
-	return _Utils_update(
-		defaultOptions,
-		{
-			items: A2(
-				elm$core$List$map,
-				function (v) {
-					return {enabled: true, text: v.valueText, value: v.value};
-				},
-				dimension.values)
-		});
-};
-var author$project$Main$dimensionHtml = function (dimension) {
-	return A3(
-		abadi199$elm_input_extra$MultiSelect$multiSelect,
-		author$project$Main$querySelectOptions(dimension),
-		_List_Nil,
-		_List_Nil);
-};
-var elm$html$Html$button = _VirtualDom_node('button');
-var elm$html$Html$Attributes$class = elm$html$Html$Attributes$stringProperty('className');
-var elm$html$Html$Events$onClick = function (msg) {
-	return A2(
-		elm$html$Html$Events$on,
-		'click',
-		elm$json$Json$Decode$succeed(msg));
-};
-var author$project$Main$configHtml = function (config) {
-	if (config.$ === 'Just') {
-		var c = config.a;
-		return A2(
-			elm$html$Html$div,
-			_List_fromArray(
-				[
-					elm$html$Html$Attributes$class('view__config_div')
-				]),
-			_Utils_ap(
-				A2(
-					elm$core$List$map,
-					function (v) {
-						return author$project$Main$dimensionHtml(v);
-					},
-					c.dimensions),
-				_List_fromArray(
-					[
-						A2(
-						elm$html$Html$button,
-						_List_fromArray(
-							[
-								elm$html$Html$Events$onClick(
-								author$project$Main$DatasetMessage(author$project$Main$DGetData))
-							]),
-						_List_fromArray(
-							[
-								elm$html$Html$text('Show graph')
-							]))
-					])));
-	} else {
-		return elm$html$Html$text('');
-	}
-};
+var author$project$Main$ShowTree = {$: 'ShowTree'};
 var author$project$Main$DGetConfig = function (a) {
 	return {$: 'DGetConfig', a: a};
 };
-var author$project$Main$DHide = function (a) {
-	return {$: 'DHide', a: a};
+var author$project$Main$DSetConfig = function (a) {
+	return {$: 'DSetConfig', a: a};
 };
-var author$project$Main$DShow = F2(
-	function (a, b) {
-		return {$: 'DShow', a: a, b: b};
+var author$project$Main$leafOnClick = F2(
+	function (leaf, oldConfig) {
+		var _n0 = leaf.config;
+		if (_n0.$ === 'Just') {
+			var config = _n0.a;
+			return _Utils_eq(
+				oldConfig,
+				elm$core$Maybe$Just(config)) ? author$project$Main$DatasetMessage(
+				author$project$Main$DSetConfig(elm$core$Maybe$Nothing)) : author$project$Main$DatasetMessage(
+				author$project$Main$DSetConfig(
+					elm$core$Maybe$Just(config)));
+		} else {
+			return author$project$Main$DatasetMessage(
+				author$project$Main$DGetConfig(leaf.id));
+		}
 	});
-var author$project$Main$leafOnClick = function (leaf) {
-	var _n0 = leaf.config;
-	if (_n0.$ === 'Just') {
-		var config = _n0.a;
-		return leaf.isHidden ? author$project$Main$DatasetMessage(
-			A2(author$project$Main$DShow, leaf.id, config)) : author$project$Main$DatasetMessage(
-			author$project$Main$DHide(leaf.id));
-	} else {
-		return author$project$Main$DatasetMessage(
-			author$project$Main$DGetConfig(leaf.id));
-	}
-};
 var author$project$Main$GetSubTree = function (a) {
 	return {$: 'GetSubTree', a: a};
 };
@@ -13337,52 +13330,55 @@ var author$project$Main$treeListOnClick = function (list) {
 };
 var elm$html$Html$li = _VirtualDom_node('li');
 var elm$html$Html$ul = _VirtualDom_node('ul');
-var author$project$Main$treeHtml = function (tree) {
-	if (tree.$ === 'Category') {
-		var list = tree.a;
-		return A2(
-			elm$html$Html$li,
-			_List_Nil,
-			_List_fromArray(
-				[
-					A2(
-					elm$html$Html$button,
-					_List_fromArray(
-						[
-							elm$html$Html$Events$onClick(
-							author$project$Main$treeListOnClick(list))
-						]),
-					_List_fromArray(
-						[
-							elm$html$Html$text(list.text)
-						])),
-					A2(
-					elm$html$Html$ul,
-					_List_Nil,
-					list.isHidden ? _List_Nil : A2(elm$core$List$map, author$project$Main$treeHtml, list.subTree))
-				]));
-	} else {
-		var leaf = tree.a;
-		return A2(
-			elm$html$Html$li,
-			_List_Nil,
-			_List_fromArray(
-				[
-					A2(
-					elm$html$Html$button,
-					_List_fromArray(
-						[
-							elm$html$Html$Events$onClick(
-							author$project$Main$leafOnClick(leaf))
-						]),
-					_List_fromArray(
-						[
-							elm$html$Html$text(leaf.text)
-						])),
-					leaf.isHidden ? elm$html$Html$text('') : author$project$Main$configHtml(leaf.config)
-				]));
-	}
-};
+var author$project$Main$treeHtml = F2(
+	function (oldConfig, tree) {
+		if (tree.$ === 'Category') {
+			var list = tree.a;
+			return A2(
+				elm$html$Html$li,
+				_List_Nil,
+				_List_fromArray(
+					[
+						A2(
+						elm$html$Html$button,
+						_List_fromArray(
+							[
+								elm$html$Html$Events$onClick(
+								author$project$Main$treeListOnClick(list))
+							]),
+						_List_fromArray(
+							[
+								elm$html$Html$text(list.text)
+							])),
+						A2(
+						elm$html$Html$ul,
+						_List_Nil,
+						list.isHidden ? _List_Nil : A2(
+							elm$core$List$map,
+							author$project$Main$treeHtml(oldConfig),
+							list.subTree))
+					]));
+		} else {
+			var leaf = tree.a;
+			return A2(
+				elm$html$Html$li,
+				_List_Nil,
+				_List_fromArray(
+					[
+						A2(
+						elm$html$Html$button,
+						_List_fromArray(
+							[
+								elm$html$Html$Events$onClick(
+								A2(author$project$Main$leafOnClick, leaf, oldConfig))
+							]),
+						_List_fromArray(
+							[
+								elm$html$Html$text(leaf.text)
+							]))
+					]));
+		}
+	});
 var author$project$Main$viewTree = function (model) {
 	return A2(
 		elm$html$Html$div,
@@ -13395,17 +13391,20 @@ var author$project$Main$viewTree = function (model) {
 				elm$html$Html$button,
 				_List_fromArray(
 					[
-						elm$html$Html$Events$onClick(author$project$Main$GetRoot),
+						elm$html$Html$Events$onClick(author$project$Main$ShowTree),
 						A2(elm$html$Html$Attributes$style, 'display', 'block')
 					]),
 				_List_fromArray(
 					[
-						elm$html$Html$text('Get Datasets!')
+						elm$html$Html$text('Choose Dataset')
 					])),
-				A2(
+				model.showTree ? A2(
 				elm$html$Html$ul,
 				_List_Nil,
-				A2(elm$core$List$map, author$project$Main$treeHtml, model.trees))
+				A2(
+					elm$core$List$map,
+					author$project$Main$treeHtml(model.datasetConfig),
+					model.trees)) : elm$html$Html$text('')
 			]));
 };
 var elm$html$Html$h2 = _VirtualDom_node('h2');
@@ -13422,7 +13421,8 @@ var author$project$Main$view = function (model) {
 					[
 						elm$html$Html$text('SSB Datasets')
 					])),
-				model.isLoading ? elm$html$Html$text('Loading...') : author$project$Main$viewTree(model),
+				author$project$Main$viewTree(model),
+				author$project$Main$configHtml(model.datasetConfig),
 				A2(author$project$Main$viewChart, model, author$project$Main$Hover)
 			]));
 };
