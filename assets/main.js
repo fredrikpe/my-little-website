@@ -12990,8 +12990,9 @@ var terezka$line_charts$Internal$Line$default = terezka$line_charts$Internal$Lin
 var terezka$line_charts$LineChart$Line$default = terezka$line_charts$Internal$Line$default;
 var author$project$Chart$viewDataset = F3(
 	function (dataset, msg, hovered) {
-		var toFloat = function (point) {
-			return A2(author$project$Dataset$dateConverter, dataset, point.x);
+		var toString = 1;
+		var toFloat = function (data) {
+			return A2(author$project$Dataset$dateConverter, dataset, data.x);
 		};
 		var charts = author$project$Dataset$iterator(dataset);
 		return A2(

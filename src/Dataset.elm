@@ -49,6 +49,10 @@ type alias Point =
     { x : String, y : Float }
 
 
+type alias PointConverter =
+    { xToFloat : String -> Float, xToString : Float -> String }
+
+
 iterator : Dataset -> List (List Line)
 iterator dataset =
     let

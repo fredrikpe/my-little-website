@@ -9,6 +9,7 @@ import LineChart.Axis as Axis
 import LineChart.Axis.Intersection as Intersection
 import LineChart.Axis.Line as AxisLine
 import LineChart.Axis.Range as Range
+import LineChart.Axis.Tick as Tick
 import LineChart.Axis.Ticks as Ticks
 import LineChart.Axis.Title as Title
 import LineChart.Container as Container
@@ -35,8 +36,11 @@ viewDataset dataset msg hovered =
             Dataset.iterator dataset
 
         toFloat =
-            \point ->
-                Dataset.dateConverter dataset point.x
+            \data ->
+                Dataset.dateConverter dataset data.x
+
+        toString =
+            1
     in
     LineChart.viewCustom
         { y = Axis.default 450 "Weight" .y
@@ -66,15 +70,32 @@ viewDataset dataset msg hovered =
         )
 
 
-xAxisConfig : (String -> Float) -> Axis.Config Data msg
-xAxisConfig toFloat =
+xAxisConfig : (String -> Float) -> (Float -> String) -> Axis.Config Data msg
+xAxisConfig toFloat toString =
     Axis.custom
         { title = Title.default "Year"
         , variable = Just << (\point -> toFloat point.x)
         , pixels = 700
         , range = Range.padded 20 20
         , axisLine = AxisLine.full Color.black
-        , ticks = Ticks.default
+        , ticks = Ticks.floatCustom 7 (customTick toString)
+        }
+
+
+customTick : (Float -> String) -> Float -> Tick.Config msg
+customTick toString number =
+    let
+        label =
+            Junk.label Color.black (toString number)
+    in
+    Tick.custom
+        { position = number
+        , color = Color.black
+        , width = 1
+        , length = 7
+        , grid = True
+        , direction = Tick.positive
+        , label = Just label
         }
 
 
