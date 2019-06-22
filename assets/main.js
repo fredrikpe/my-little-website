@@ -6868,8 +6868,25 @@ var avh4$elm_color$Color$red = A4(avh4$elm_color$Color$RgbaSpace, 204 / 255, 0 /
 var avh4$elm_color$Color$yellow = A4(avh4$elm_color$Color$RgbaSpace, 237 / 255, 212 / 255, 0 / 255, 1.0);
 var author$project$Chart$colors = _List_fromArray(
 	[avh4$elm_color$Color$red, avh4$elm_color$Color$orange, avh4$elm_color$Color$yellow, avh4$elm_color$Color$green, avh4$elm_color$Color$blue, avh4$elm_color$Color$purple, avh4$elm_color$Color$brown, avh4$elm_color$Color$lightRed, avh4$elm_color$Color$lightOrange, avh4$elm_color$Color$lightYellow, avh4$elm_color$Color$lightGreen, avh4$elm_color$Color$lightBlue, avh4$elm_color$Color$lightPurple, avh4$elm_color$Color$lightBrown]);
-var author$project$Chart$names = _List_fromArray(
-	['a', 'b', 'c', 'd', 'e', 'f', 'g']);
+var terezka$line_charts$Internal$Line$Series = function (a) {
+	return {$: 'Series', a: a};
+};
+var terezka$line_charts$Internal$Line$SeriesConfig = F5(
+	function (color, shape, dashing, label, data) {
+		return {color: color, dashing: dashing, data: data, label: label, shape: shape};
+	});
+var terezka$line_charts$Internal$Line$line = F4(
+	function (color_, shape_, label_, data_) {
+		return terezka$line_charts$Internal$Line$Series(
+			A5(terezka$line_charts$Internal$Line$SeriesConfig, color_, shape_, _List_Nil, label_, data_));
+	});
+var terezka$line_charts$LineChart$line = terezka$line_charts$Internal$Line$line;
+var terezka$line_charts$Internal$Dots$None = {$: 'None'};
+var terezka$line_charts$LineChart$Dots$none = terezka$line_charts$Internal$Dots$None;
+var author$project$Chart$linePlot = F2(
+	function (line, color) {
+		return A4(terezka$line_charts$LineChart$line, color, terezka$line_charts$LineChart$Dots$none, line.legend, line.points);
+	});
 var avh4$elm_color$Color$black = A4(avh4$elm_color$Color$RgbaSpace, 0 / 255, 0 / 255, 0 / 255, 1.0);
 var terezka$line_charts$Internal$Axis$Tick$Config = function (a) {
 	return {$: 'Config', a: a};
@@ -7493,20 +7510,6 @@ var author$project$Chart$xAxisConfig = F2(
 					})
 			});
 	});
-var elm$core$List$map3 = _List_map3;
-var terezka$line_charts$Internal$Line$Series = function (a) {
-	return {$: 'Series', a: a};
-};
-var terezka$line_charts$Internal$Line$SeriesConfig = F5(
-	function (color, shape, dashing, label, data) {
-		return {color: color, dashing: dashing, data: data, label: label, shape: shape};
-	});
-var terezka$line_charts$Internal$Line$line = F4(
-	function (color_, shape_, label_, data_) {
-		return terezka$line_charts$Internal$Line$Series(
-			A5(terezka$line_charts$Internal$Line$SeriesConfig, color_, shape_, _List_Nil, label_, data_));
-	});
-var terezka$line_charts$LineChart$line = terezka$line_charts$Internal$Line$line;
 var elm$core$List$append = F2(
 	function (xs, ys) {
 		if (!ys.b) {
@@ -9016,6 +9019,7 @@ var terezka$line_charts$Internal$Area$opacityContainer = function (config) {
 			return opacity_;
 	}
 };
+var elm$core$List$map3 = _List_map3;
 var terezka$line_charts$Internal$Line$viewNormal = function (_n0) {
 	var areas = _n0.a;
 	var lines = _n0.b;
@@ -10541,8 +10545,6 @@ var terezka$line_charts$LineChart$Dots$hoverOne = function (maybeHovered) {
 	return terezka$line_charts$Internal$Dots$customAny(
 		{individual: styleIndividual, legend: styleLegend});
 };
-var terezka$line_charts$Internal$Dots$None = {$: 'None'};
-var terezka$line_charts$LineChart$Dots$none = terezka$line_charts$Internal$Dots$None;
 var terezka$line_charts$Internal$Events$Config = function (a) {
 	return {$: 'Config', a: a};
 };
@@ -11201,15 +11203,14 @@ var author$project$Chart$viewChart = F5(
 						return $.y;
 					})
 			},
-			A4(
-				elm$core$List$map3,
-				F3(
-					function (c, color, name) {
-						return A4(terezka$line_charts$LineChart$line, color, terezka$line_charts$LineChart$Dots$none, name, c.points);
+			A3(
+				elm$core$List$map2,
+				F2(
+					function (line, color) {
+						return A2(author$project$Chart$linePlot, line, color);
 					}),
 				chart,
-				author$project$Chart$colors,
-				author$project$Chart$names));
+				author$project$Chart$colors));
 	});
 var author$project$Util$getAt = F2(
 	function (i, list) {
@@ -11314,27 +11315,35 @@ var author$project$Dataset$dateConverter = function (dataset) {
 			});
 	}
 };
+var elm$core$Result$fromMaybe = F2(
+	function (err, maybe) {
+		if (maybe.$ === 'Just') {
+			var v = maybe.a;
+			return elm$core$Result$Ok(v);
+		} else {
+			return elm$core$Result$Err(err);
+		}
+	});
 var author$project$Dataset$firstLongDimensionSize = function (dataset) {
 	return A2(
-		elm$core$Maybe$withDefault,
-		1,
+		elm$core$Result$fromMaybe,
+		'Whaaaat',
 		A2(
-			elm$core$Maybe$map,
-			function (dim) {
-				return elm$core$List$length(dim.values);
+			elm$core$Maybe$andThen,
+			function (idx) {
+				return A2(author$project$Util$getAt, idx, dataset.dimensions);
 			},
 			A2(
-				elm$core$Maybe$andThen,
-				function (idx) {
-					return A2(author$project$Util$getAt, idx, dataset.dimensions);
+				author$project$Util$indexOf,
+				function (dim) {
+					return elm$core$List$length(dim.values) > 1;
 				},
-				A2(
-					author$project$Util$indexOf,
-					function (dim) {
-						return elm$core$List$length(dim.values) > 1;
-					},
-					dataset.dimensions))));
+				dataset.dimensions)));
 };
+var author$project$Dataset$Point = F2(
+	function (x, y) {
+		return {x: x, y: y};
+	});
 var elm$core$List$takeReverse = F3(
 	function (n, list, kept) {
 		takeReverse:
@@ -11483,31 +11492,14 @@ var author$project$Util$splitEvery = F2(
 				A2(author$project$Util$splitEvery, n, l));
 		}
 	});
-var author$project$Dataset$splitToCharts = F2(
-	function (n, lines) {
-		return A2(author$project$Util$splitEvery, n, lines);
-	});
-var author$project$Dataset$Point = F2(
-	function (x, y) {
-		return {x: x, y: y};
-	});
-var elm$core$Result$fromMaybe = F2(
-	function (err, maybe) {
-		if (maybe.$ === 'Just') {
-			var v = maybe.a;
-			return elm$core$Result$Ok(v);
-		} else {
-			return elm$core$Result$Err(err);
-		}
-	});
-var author$project$Dataset$splitToLines = function (dataset) {
-	return A2(
-		elm$core$Result$map,
-		function (lastDim) {
-			return A2(
-				elm$core$List$map,
-				function (values) {
+var author$project$Dataset$makeLines = F3(
+	function (dim, dataset, lastDim) {
+		return A3(
+			elm$core$List$map2,
+			F2(
+				function (values, legend) {
 					return {
+						legend: legend,
 						points: A3(
 							elm$core$List$map2,
 							author$project$Dataset$Point,
@@ -11519,17 +11511,32 @@ var author$project$Dataset$splitToLines = function (dataset) {
 								lastDim.values),
 							values)
 					};
+				}),
+			A2(
+				author$project$Util$splitEvery,
+				elm$core$List$length(lastDim.values),
+				dataset.values),
+			A2(
+				elm$core$List$map,
+				function ($) {
+					return $.valueText;
 				},
+				dim.values));
+	});
+var author$project$Dataset$splitToLines = F2(
+	function (dataset, dim) {
+		return A2(
+			elm$core$Result$map,
+			author$project$Util$splitEvery(
+				elm$core$List$length(dim.values)),
+			A2(
+				elm$core$Result$map,
+				A2(author$project$Dataset$makeLines, dim, dataset),
 				A2(
-					author$project$Util$splitEvery,
-					elm$core$List$length(lastDim.values),
-					dataset.values));
-		},
-		A2(
-			elm$core$Result$fromMaybe,
-			'No last dim!',
-			author$project$Util$last(dataset.dimensions)));
-};
+					elm$core$Result$fromMaybe,
+					'No last dim!',
+					author$project$Util$last(dataset.dimensions))));
+	});
 var author$project$Util$indexesOf = F2(
 	function (f, list) {
 		var helper = F2(
@@ -11550,8 +11557,18 @@ var author$project$Util$indexesOf = F2(
 			});
 		return A2(helper, list, 0);
 	});
+var elm$core$Result$andThen = F2(
+	function (callback, result) {
+		if (result.$ === 'Ok') {
+			var value = result.a;
+			return callback(value);
+		} else {
+			var msg = result.a;
+			return elm$core$Result$Err(msg);
+		}
+	});
 var author$project$Dataset$makeCharts = function (dataset) {
-	var firstSize = author$project$Dataset$firstLongDimensionSize(dataset);
+	var firstDim = author$project$Dataset$firstLongDimensionSize(dataset);
 	var dimsNotOne = A2(
 		author$project$Util$indexesOf,
 		function (dim) {
@@ -11562,18 +11579,11 @@ var author$project$Dataset$makeCharts = function (dataset) {
 	switch (_n0) {
 		case 2:
 			return A2(
-				elm$core$Result$map,
-				function (lines) {
-					return A2(author$project$Dataset$splitToCharts, firstSize, lines);
-				},
-				author$project$Dataset$splitToLines(dataset));
+				elm$core$Result$andThen,
+				author$project$Dataset$splitToLines(dataset),
+				firstDim);
 		case 1:
-			return A2(
-				elm$core$Result$map,
-				function (lines) {
-					return A2(author$project$Dataset$splitToCharts, 1, lines);
-				},
-				author$project$Dataset$splitToLines(dataset));
+			return elm$core$Result$Err('TODOWrong size of dataset');
 		default:
 			return elm$core$Result$Err('Wrong size of dataset');
 	}

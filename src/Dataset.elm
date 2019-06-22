@@ -1,4 +1,4 @@
-module Dataset exposing (Chart, Config, Dataset, DimValue, Dimension, Line, Point, PointConverter, Query, Tree(..), blankQuery, categoryConstructor, datasetDecoder, dateConverter, dimValueConstructor, dimensionDecoder, firstLongDimensionSize, getDataset, getLeafConfig, getTree, helper001, helper002, leafConfigDecoder, leafConstructor, leafDecoder, makeCharts, partialDimensionDecoder, queryEncoder, queryToString, setHidden, setLeafConfig, setSubTree, splitToCharts, splitToLines, ssbTreesUrl, subListDecoder, treeDecoder, treeListDecoder)
+module Dataset exposing (Config, Dataset, DimValue, Dimension, Line, Point, PointConverter, Query, Tree(..), blankQuery, categoryConstructor, datasetDecoder, dateConverter, dimValueConstructor, dimensionDecoder, firstLongDimensionSize, getDataset, getLeafConfig, getTree, helper001, helper002, leafConfigDecoder, leafConstructor, leafDecoder, makeCharts, partialDimensionDecoder, queryEncoder, queryToString, setHidden, setLeafConfig, setSubTree, splitToLines, ssbTreesUrl, subListDecoder, treeDecoder, treeListDecoder)
 
 import Http
 import HttpUtil
@@ -37,12 +37,8 @@ type alias Dataset =
     { dimensions : List Dimension, values : List Float }
 
 
-type alias Chart =
-    { lines : List Line }
-
-
 type alias Line =
-    { points : List Point }
+    { legend : String, points : List Point }
 
 
 type alias Point =
@@ -56,30 +52,29 @@ type alias PointConverter =
 firstLongDimensionSize dataset =
     Util.indexOf (\dim -> List.length dim.values > 1) dataset.dimensions
         |> Maybe.andThen (\idx -> Util.getAt idx dataset.dimensions)
-        |> Maybe.map (\dim -> List.length dim.values)
-        |> Maybe.withDefault 1
+        |> Result.fromMaybe "Whaaaat"
 
 
-splitToCharts : Int -> List Line -> List (List Line)
-splitToCharts n lines =
-    Util.splitEvery n lines
+makeLines : Dimension -> Dataset -> Dimension -> List Line
+makeLines dim dataset lastDim =
+    List.map2
+        (\values legend ->
+            { points =
+                List.map2 Point
+                    (List.map (\x -> x.value) lastDim.values)
+                    values
+            , legend = legend
+            }
+        )
+        (Util.splitEvery (List.length lastDim.values) dataset.values)
+        (List.map .valueText dim.values)
 
 
-splitToLines : Dataset -> Result String (List Line)
-splitToLines dataset =
+splitToLines : Dataset -> Dimension -> Result String (List (List Line))
+splitToLines dataset dim =
     Result.fromMaybe "No last dim!" (Util.last dataset.dimensions)
-        |> Result.map
-            (\lastDim ->
-                List.map
-                    (\values ->
-                        { points =
-                            List.map2 Point
-                                (List.map (\x -> x.value) lastDim.values)
-                                values
-                        }
-                    )
-                    (Util.splitEvery (List.length lastDim.values) dataset.values)
-            )
+        |> Result.map (makeLines dim dataset)
+        |> Result.map (Util.splitEvery (List.length dim.values))
 
 
 makeCharts : Dataset -> Result String (List (List Line))
@@ -88,16 +83,18 @@ makeCharts dataset =
         dimsNotOne =
             Util.indexesOf (\dim -> List.length dim.values /= 1) dataset.dimensions
 
-        firstSize =
+        firstDim =
             firstLongDimensionSize dataset
     in
     case List.length dimsNotOne of
         2 ->
-            Result.map (\lines -> splitToCharts firstSize lines) (splitToLines dataset)
+            firstDim
+                |> Result.andThen (splitToLines dataset)
 
         1 ->
-            Result.map (\lines -> splitToCharts 1 lines) (splitToLines dataset)
+            Err "TODOWrong size of dataset"
 
+        --Result.map (\lines -> splitToCharts 1 lines) (splitToLines dataset)
         _ ->
             Err "Wrong size of dataset"
 

@@ -65,14 +65,17 @@ viewChart chart toFloat toString msg hovered =
         , line = Line.default
         , dots = Dots.hoverOne hovered
         }
-        (List.map3
-            (\c color name ->
-                LineChart.line color Dots.none name c.points
+        (List.map2
+            (\line color ->
+                linePlot line color
             )
             chart
             colors
-            names
         )
+
+
+linePlot line color =
+    LineChart.line color Dots.none line.legend line.points
 
 
 xAxisConfig : (String -> Float) -> (Float -> String) -> Axis.Config Data msg

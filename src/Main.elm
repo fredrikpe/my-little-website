@@ -214,7 +214,9 @@ handleDatasetMsg msg model =
                     ( setQuery (Just { q | dimensions = dims }) model, Cmd.none )
 
                 Nothing ->
-                    ( errorModel "Query was Nothing when it shouldn't have been!", Cmd.none )
+                    ( errorModel "Query was Nothing when it shouldn't have been!"
+                    , Cmd.none
+                    )
 
         DGetConfig id ->
             ( model
@@ -248,7 +250,9 @@ handleDatasetMsg msg model =
                     ( { model | errorMsg = Just (Dataset.queryToString q) }, Cmd.none )
 
                 Nothing ->
-                    ( errorModel "Query was Nothing when it shouldn't have been!", Cmd.none )
+                    ( errorModel "Query was Nothing when it shouldn't have been!"
+                    , Cmd.none
+                    )
 
 
 view : Model -> Html.Html Msg
