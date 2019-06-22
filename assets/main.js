@@ -11715,8 +11715,6 @@ var author$project$Main$viewTree = function (model) {
 		_List_Nil,
 		_List_fromArray(
 			[
-				elm$html$Html$text(
-				A2(elm$core$Maybe$withDefault, '', model.errorMsg)),
 				A2(
 				elm$html$Html$button,
 				_List_fromArray(

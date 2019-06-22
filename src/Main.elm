@@ -277,8 +277,7 @@ viewChart model msg =
 viewTree : Model -> Html.Html Msg
 viewTree model =
     Html.div []
-        [ Html.text (Maybe.withDefault "" model.errorMsg)
-        , Html.button [ Html.Events.onClick ShowTree, Html.Attributes.style "display" "block" ] [ Html.text "Choose Dataset" ]
+        [ Html.button [ Html.Events.onClick ShowTree, Html.Attributes.style "display" "block" ] [ Html.text "Choose Dataset" ]
         , if model.showTree then
             Html.ul [] (List.map (treeHtml model.datasetConfig) model.trees)
 
