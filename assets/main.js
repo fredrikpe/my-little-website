@@ -5042,13 +5042,16 @@ var author$project$Dataset$leafDecoder = A3(
 		},
 		A2(elm$json$Json$Decode$field, 'text', elm$json$Json$Decode$string)),
 	A2(elm$json$Json$Decode$field, 'text', elm$json$Json$Decode$string));
-var author$project$Dataset$Category = function (a) {
-	return {$: 'Category', a: a};
-};
+var author$project$Dataset$Category = F2(
+	function (a, b) {
+		return {$: 'Category', a: a, b: b};
+	});
 var author$project$Dataset$categoryConstructor = F3(
 	function (id, text, subTree) {
-		return author$project$Dataset$Category(
-			{id: id, isHidden: false, subTree: subTree, text: text});
+		return A2(
+			author$project$Dataset$Category,
+			{id: id, isHidden: false, text: text},
+			subTree);
 	});
 var elm$json$Json$Decode$map3 = _Json_map3;
 var elm$json$Json$Decode$succeed = _Json_succeed;
@@ -5897,26 +5900,6 @@ var author$project$Main$init = function (_n0) {
 			author$project$Main$GotRoot,
 			author$project$Dataset$getTree('')));
 };
-var author$project$Dataset$addSubTree = F3(
-	function (subTree, id, tree) {
-		if (tree.$ === 'Category') {
-			var list = tree.a;
-			return _Utils_eq(list.id, id) ? author$project$Dataset$Category(
-				_Utils_update(
-					list,
-					{subTree: subTree})) : author$project$Dataset$Category(
-				_Utils_update(
-					list,
-					{
-						subTree: A2(
-							elm$core$List$map,
-							A2(author$project$Dataset$addSubTree, subTree, id),
-							list.subTree)
-					}));
-		} else {
-			return tree;
-		}
-	});
 var elm$json$Json$Encode$list = F2(
 	function (func, entries) {
 		return _Json_wrap(
@@ -5995,22 +5978,39 @@ var author$project$Dataset$queryToString = function (query) {
 var author$project$Dataset$setHidden = F3(
 	function (bool, id, tree) {
 		if (tree.$ === 'Category') {
-			var list = tree.a;
-			return _Utils_eq(list.id, id) ? author$project$Dataset$Category(
+			var state = tree.a;
+			var list = tree.b;
+			return _Utils_eq(state.id, id) ? A2(
+				author$project$Dataset$Category,
 				_Utils_update(
-					list,
-					{isHidden: bool})) : author$project$Dataset$Category(
-				_Utils_update(
-					list,
-					{
-						subTree: A2(
-							elm$core$List$map,
-							A2(author$project$Dataset$setHidden, bool, id),
-							list.subTree)
-					}));
+					state,
+					{isHidden: bool}),
+				list) : A2(
+				author$project$Dataset$Category,
+				state,
+				A2(
+					elm$core$List$map,
+					A2(author$project$Dataset$setHidden, bool, id),
+					list));
 		} else {
 			var l = tree;
 			return l;
+		}
+	});
+var author$project$Dataset$setSubTree = F3(
+	function (subTree, id, tree) {
+		if (tree.$ === 'Category') {
+			var state = tree.a;
+			var list = tree.b;
+			return _Utils_eq(state.id, id) ? A2(author$project$Dataset$Category, state, subTree) : A2(
+				author$project$Dataset$Category,
+				state,
+				A2(
+					elm$core$List$map,
+					A2(author$project$Dataset$setSubTree, subTree, id),
+					list));
+		} else {
+			return tree;
 		}
 	});
 var author$project$Main$GotSubTree = F2(
@@ -6204,16 +6204,15 @@ var author$project$Dataset$getLeafConfig = function (id) {
 var author$project$Dataset$setLeafConfig = F3(
 	function (config, id, tree) {
 		if (tree.$ === 'Category') {
-			var list = tree.a;
-			return author$project$Dataset$Category(
-				_Utils_update(
-					list,
-					{
-						subTree: A2(
-							elm$core$List$map,
-							A2(author$project$Dataset$setLeafConfig, config, id),
-							list.subTree)
-					}));
+			var state = tree.a;
+			var list = tree.b;
+			return A2(
+				author$project$Dataset$Category,
+				state,
+				A2(
+					elm$core$List$map,
+					A2(author$project$Dataset$setLeafConfig, config, id),
+					list));
 		} else {
 			var leaf = tree.a;
 			return _Utils_eq(leaf.id, id) ? author$project$Dataset$Leaf(
@@ -6533,7 +6532,7 @@ var author$project$Main$update = F2(
 							F2(
 								function (x, y) {
 									return A3(
-										author$project$Dataset$addSubTree,
+										author$project$Dataset$setSubTree,
 										subTree,
 										x,
 										A3(author$project$Dataset$setHidden, false, x, y));
@@ -13290,7 +13289,7 @@ var author$project$Main$viewChart = F2(
 			var d = _n0.a;
 			return A3(author$project$Chart$viewDataset, d, msg, model.hovered);
 		} else {
-			return elm$html$Html$text('No Dataset');
+			return elm$html$Html$text('');
 		}
 	});
 var author$project$Main$ShowTree = {$: 'ShowTree'};
@@ -13325,15 +13324,17 @@ var author$project$Main$Hide = function (a) {
 var author$project$Main$Show = function (a) {
 	return {$: 'Show', a: a};
 };
-var author$project$Main$treeListOnClick = function (list) {
-	return (!elm$core$List$length(list.subTree)) ? author$project$Main$GetSubTree(list.id) : (list.isHidden ? author$project$Main$Show(list.id) : author$project$Main$Hide(list.id));
-};
+var author$project$Main$treeListOnClick = F2(
+	function (state, list) {
+		return (!elm$core$List$length(list)) ? author$project$Main$GetSubTree(state.id) : (state.isHidden ? author$project$Main$Show(state.id) : author$project$Main$Hide(state.id));
+	});
 var elm$html$Html$li = _VirtualDom_node('li');
 var elm$html$Html$ul = _VirtualDom_node('ul');
 var author$project$Main$treeHtml = F2(
 	function (oldConfig, tree) {
 		if (tree.$ === 'Category') {
-			var list = tree.a;
+			var state = tree.a;
+			var list = tree.b;
 			return A2(
 				elm$html$Html$li,
 				_List_Nil,
@@ -13344,19 +13345,19 @@ var author$project$Main$treeHtml = F2(
 						_List_fromArray(
 							[
 								elm$html$Html$Events$onClick(
-								author$project$Main$treeListOnClick(list))
+								A2(author$project$Main$treeListOnClick, state, list))
 							]),
 						_List_fromArray(
 							[
-								elm$html$Html$text(list.text)
+								elm$html$Html$text(state.text)
 							])),
 						A2(
 						elm$html$Html$ul,
 						_List_Nil,
-						list.isHidden ? _List_Nil : A2(
+						state.isHidden ? _List_Nil : A2(
 							elm$core$List$map,
 							author$project$Main$treeHtml(oldConfig),
-							list.subTree))
+							list))
 					]));
 		} else {
 			var leaf = tree.a;

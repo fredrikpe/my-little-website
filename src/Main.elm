@@ -159,7 +159,7 @@ update msg model =
                 Ok subTree ->
                     ( updateTree id
                         (\x y ->
-                            Dataset.addSubTree subTree x (Dataset.setHidden False x y)
+                            Dataset.setSubTree subTree x (Dataset.setHidden False x y)
                         )
                         model
                     , Cmd.none
@@ -267,7 +267,7 @@ viewChart model msg =
             Chart.viewDataset d msg model.hovered
 
         Nothing ->
-            Html.text "No Dataset"
+            Html.text ""
 
 
 viewTree : Model -> Html.Html Msg
@@ -286,15 +286,16 @@ viewTree model =
 treeHtml : Maybe Dataset.Config -> Dataset.Tree -> Html.Html Msg
 treeHtml oldConfig tree =
     case tree of
-        Dataset.Category list ->
+        Dataset.Category state list ->
             Html.li []
-                [ Html.button [ Html.Events.onClick (treeListOnClick list) ] [ Html.text list.text ]
+                [ Html.button [ Html.Events.onClick (treeListOnClick state list) ]
+                    [ Html.text state.text ]
                 , Html.ul []
-                    (if list.isHidden then
+                    (if state.isHidden then
                         []
 
                      else
-                        List.map (treeHtml oldConfig) list.subTree
+                        List.map (treeHtml oldConfig) list
                     )
                 ]
 
@@ -354,15 +355,15 @@ onQueryChange dimension s =
         )
 
 
-treeListOnClick list =
-    if List.length list.subTree == 0 then
-        GetSubTree list.id
+treeListOnClick state list =
+    if List.length list == 0 then
+        GetSubTree state.id
 
-    else if list.isHidden then
-        Show list.id
+    else if state.isHidden then
+        Show state.id
 
     else
-        Hide list.id
+        Hide state.id
 
 
 leafOnClick leaf oldConfig =

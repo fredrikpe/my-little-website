@@ -1,4 +1,4 @@
-module Dataset exposing (Chart, Config, Dataset, DimValue, Dimension, Line, Point, PointConverter, Query, Tree(..), addSubTree, blankQuery, categoryConstructor, datasetDecoder, dateConverter, dimValueConstructor, dimensionDecoder, getDataset, getLeafConfig, getTree, helper001, helper002, iterator, leafConfigDecoder, leafConstructor, leafDecoder, partialDimensionDecoder, queryEncoder, queryToString, setHidden, setLeafConfig, ssbTreesUrl, subListDecoder, treeDecoder, treeListDecoder)
+module Dataset exposing (Chart, Config, Dataset, DimValue, Dimension, Line, Point, PointConverter, Query, Tree(..), blankQuery, categoryConstructor, datasetDecoder, dateConverter, dimValueConstructor, dimensionDecoder, getDataset, getLeafConfig, getTree, helper001, helper002, iterator, leafConfigDecoder, leafConstructor, leafDecoder, partialDimensionDecoder, queryEncoder, queryToString, setHidden, setLeafConfig, setSubTree, ssbTreesUrl, subListDecoder, treeDecoder, treeListDecoder)
 
 import Http
 import HttpUtil
@@ -13,7 +13,7 @@ ssbTreesUrl =
 
 
 type Tree
-    = Category { id : String, text : String, subTree : List Tree, isHidden : Bool }
+    = Category { id : String, text : String, isHidden : Bool } (List Tree)
     | Leaf { id : String, text : String, config : Maybe Config }
 
 
@@ -142,7 +142,7 @@ dateConverter dataset =
 
 
 categoryConstructor id text subTree =
-    Category { id = id, text = text, subTree = subTree, isHidden = False }
+    Category { id = id, text = text, isHidden = False } subTree
 
 
 leafConstructor id text =
@@ -171,15 +171,15 @@ getDataset query =
         datasetDecoder
 
 
-addSubTree : List Tree -> String -> Tree -> Tree
-addSubTree subTree id tree =
+setSubTree : List Tree -> String -> Tree -> Tree
+setSubTree subTree id tree =
     case tree of
-        Category list ->
-            if list.id == id then
-                Category { list | subTree = subTree }
+        Category state list ->
+            if state.id == id then
+                Category state subTree
 
             else
-                Category { list | subTree = List.map (addSubTree subTree id) list.subTree }
+                Category state (List.map (setSubTree subTree id) list)
 
         _ ->
             tree
@@ -188,8 +188,8 @@ addSubTree subTree id tree =
 setLeafConfig : Config -> String -> Tree -> Tree
 setLeafConfig config id tree =
     case tree of
-        Category list ->
-            Category { list | subTree = List.map (setLeafConfig config id) list.subTree }
+        Category state list ->
+            Category state (List.map (setLeafConfig config id) list)
 
         Leaf leaf ->
             if leaf.id == id then
@@ -202,13 +202,12 @@ setLeafConfig config id tree =
 setHidden : Bool -> String -> Tree -> Tree
 setHidden bool id tree =
     case tree of
-        Category list ->
-            if list.id == id then
-                Category { list | isHidden = bool }
+        Category state list ->
+            if state.id == id then
+                Category { state | isHidden = bool } list
 
             else
-                Category
-                    { list | subTree = List.map (setHidden bool id) list.subTree }
+                Category state (List.map (setHidden bool id) list)
 
         l ->
             l
