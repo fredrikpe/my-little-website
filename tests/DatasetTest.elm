@@ -251,8 +251,8 @@ suite =
                                     },
                                     "y": {
                                         "category": {
-                                            "index": { "y0": 0, "y1": 1 },
-                                            "label": { "y0": "", "y1": "" }
+                                            "index": { "y0": 0 },
+                                            "label": { "y0": "" }
                                         }
                                     },
                                     "z": {
@@ -282,9 +282,6 @@ suite =
                         y0 =
                             dimValue "y0" 0
 
-                        y1 =
-                            dimValue "y1" 1
-
                         z0 =
                             dimValue "z0" 0
 
@@ -295,33 +292,43 @@ suite =
                             { code = "x", text = "unknown", values = [ x0, x1 ] }
 
                         y =
-                            { code = "y", text = "unknown", values = [ y0, y1 ] }
+                            { code = "y", text = "unknown", values = [ y0 ] }
 
                         z =
                             { code = "z", text = "unknown", values = [ z0, z1 ] }
 
                         dimensions =
                             [ x, y, z ]
+
+                        l0 =
+                            line [ point "z0" 0, point "z1" 1 ]
+
+                        l1 =
+                            line [ point "z0" 2, point "z1" 3 ]
+
+                        l2 =
+                            line [ point "z0" 4, point "z1" 5 ]
+
+                        l3 =
+                            line [ point "z0" 6, point "z1" 7 ]
+
+                        expectedCharts =
+                            [ { lines = [ l0, l1 ] }
+                            , { lines = [ l2, l3 ] }
+                            ]
                     in
                     case result of
                         Ok data ->
                             Expect.all
                                 [ \d -> Expect.equalLists d.values values
                                 , \d -> Expect.equalLists d.dimensions dimensions
+                                , \d ->
+                                    case Dataset.makeCharts data of
+                                        Ok charts ->
+                                            Expect.equalLists charts expectedCharts
 
-                                --, \d -> Expect.equalLists (Dataset.iterator data) []
-                                --[ ( [ "x0", "y0" ], [ 0, 1 ] )
-                                --, ( [ "x0", "y1" ], [ 2, 3 ] )
-                                --, ( [ "x1", "y0" ], [ 4, 5 ] )
-                                --, ( [ "x1", "y1" ], [ 6, 7 ] )
-                                --]
-                                {-
-                                   [ ("x0", ( "y0", [ 0, 1 ] )
-                                   , ( [ "x0", "y1" ], [ 2, 3 ] )
-                                   , ( [ "x1", "y0" ], [ 4, 5 ] )
-                                   , ( [ "x1", "y1" ], [ 6, 7 ] )
-                                   ]
-                                -}
+                                        Err e ->
+                                            Expect.fail e
                                 ]
                                 data
 
@@ -333,3 +340,11 @@ suite =
 
 dimValue s n =
     { value = s, valueText = "", index = n }
+
+
+line points =
+    { points = points }
+
+
+point x y =
+    { x = x, y = y }

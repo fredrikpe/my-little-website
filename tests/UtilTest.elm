@@ -26,16 +26,32 @@ suite =
                     Expect.equalLists (Util.slice 5 2 [ 0, 1, 2, 3, 4, 5 ]) []
             , test "indexOf 1" <|
                 \_ ->
-                    Expect.equal (Util.indexOf 5 [ 0, 1, 2, 3, 4, 5 ]) (Just 5)
+                    Expect.equal
+                        (Util.indexOf (\x -> x == 5)
+                            [ 0, 1, 2, 3, 4, 5 ]
+                        )
+                        (Just 5)
             , test "indexOf 2" <|
                 \_ ->
-                    Expect.equal (Util.indexOf 56 [ 0, 1, 2, 3, 4, 5 ]) Nothing
+                    Expect.equal
+                        (Util.indexOf (\x -> x == 56)
+                            [ 0, 1, 2, 3, 4, 5 ]
+                        )
+                        Nothing
+            , test "indexesOf 1" <|
+                \_ ->
+                    Expect.equalLists
+                        (Util.indexesOf (\x -> x == 3)
+                            [ 0, 3, 2, 3, 4, 3 ]
+                        )
+                        [ 1, 3, 5 ]
             , test "scanl 1" <|
                 \_ ->
                     Expect.equalLists (Util.scanl (+) 0 [ 1, 2, 3 ]) [ 0, 1, 3, 6 ]
             , test "scanl 2" <|
                 \_ ->
-                    Expect.equalLists (Util.scanl (+) 0 (List.repeat 3 5)) [ 0, 5, 10, 15 ]
+                    Expect.equalLists (Util.scanl (+) 0 (List.repeat 3 5))
+                        [ 0, 5, 10, 15 ]
             , test "nthLast 1" <|
                 \_ ->
                     Expect.equal (Util.nthLast 0 [ 0 ]) (Just 0)
@@ -48,10 +64,22 @@ suite =
             , test "nthLast 3" <|
                 \_ ->
                     Expect.equal (Util.nthLast 44 [ 0, 1, 2, 3, 4 ]) Nothing
+            , test "splitEvery 1" <|
+                \_ ->
+                    Expect.equalLists
+                        (Util.splitEvery 2 [ 0, 1, 2, 3 ])
+                        [ [ 0, 1 ], [ 2, 3 ] ]
+            , test "splitEvery 2" <|
+                \_ ->
+                    Expect.equalLists
+                        (Util.splitEvery 4 [ 0, 1, 2, 3, 4, 5 ])
+                        [ [ 0, 1, 2, 3 ], [ 4, 5 ] ]
             , test "foo 1" <|
                 \_ ->
                     Expect.equal
-                        (Util.generateCombinations [ [ "x0", "x1" ], [ "y0", "y1", "y2" ], [ "z0", "z1" ] ])
+                        (Util.generateCombinations
+                            [ [ "x0", "x1" ], [ "y0", "y1", "y2" ], [ "z0", "z1" ] ]
+                        )
                         [ [ "x0", "y0", "z0" ]
                         , [ "x0", "y0", "z1" ]
                         , [ "x0", "y1", "z0" ]

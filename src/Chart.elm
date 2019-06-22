@@ -32,19 +32,27 @@ type alias Data =
 viewDataset : Dataset.Dataset -> (Maybe Data -> msg) -> Maybe Data -> Html.Html msg
 viewDataset dataset msg hovered =
     let
-        charts =
-            Dataset.iterator dataset
+        rcharts =
+            Dataset.makeCharts dataset
 
         toFloat =
-            \data ->
-                Dataset.dateConverter dataset data.x
+            Dataset.dateConverter dataset
 
         toString =
-            1
+            \x -> "string"
     in
+    case rcharts of
+        Ok charts ->
+            viewChart (Maybe.withDefault [] (List.head charts)) toFloat toString msg hovered
+
+        Err e ->
+            Html.text e
+
+
+viewChart chart toFloat toString msg hovered =
     LineChart.viewCustom
         { y = Axis.default 450 "Weight" .y
-        , x = Axis.time Time.utc 650 "Time" toFloat
+        , x = xAxisConfig toFloat toString
         , container = Container.styled "line-chart-1" [ ( "font-family", "monospace" ) ]
         , interpolation = Interpolation.default
         , intersection = Intersection.default
@@ -64,7 +72,7 @@ viewDataset dataset msg hovered =
             (\c color name ->
                 LineChart.line color Dots.none name c.points
             )
-            (Maybe.withDefault [] (List.head charts))
+            chart
             colors
             names
         )

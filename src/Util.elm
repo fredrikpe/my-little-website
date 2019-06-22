@@ -1,4 +1,6 @@
-module Util exposing (all, any, contains, generateCombinations, indexOf, last, nthLast, remove, replaceIf, scanl, slice)
+module Util exposing (all, any, contains, generateCombinations, getAt, indexOf, indexesOf, last, nthLast, remove, replaceIf, scanl, slice, splitEvery)
+
+import List.Extra as Extra
 
 
 any : (a -> Bool) -> List a -> Bool
@@ -49,22 +51,36 @@ slice start end list =
     List.take (end - start) (List.drop start list)
 
 
-indexOf : a -> List a -> Maybe Int
-indexOf x xs =
+indexOf : (a -> Bool) -> List a -> Maybe Int
+indexOf f xs =
     let
-        f list n =
+        helper list n =
             case list of
                 y :: ys ->
-                    if y == x then
+                    if f y then
                         Just n
 
                     else
-                        f ys (n + 1)
+                        helper ys (n + 1)
 
                 [] ->
                     Nothing
     in
-    f xs 0
+    helper xs 0
+
+
+indexesOf : (a -> Bool) -> List a -> List Int
+indexesOf f list =
+    let
+        helper xs n =
+            case indexOf f xs of
+                Just idx ->
+                    [ n + idx ] ++ helper (List.drop (idx + 1) xs) (n + idx + 1)
+
+                Nothing ->
+                    []
+    in
+    helper list 0
 
 
 scanl : (a -> b -> b) -> b -> List a -> List b
@@ -136,3 +152,17 @@ generateCombinations input =
                         )
     in
     helper [] input
+
+
+splitEvery : Int -> List a -> List (List a)
+splitEvery n list =
+    let
+        ( head, tail ) =
+            Extra.splitAt n list
+    in
+    case tail of
+        [] ->
+            [ head ]
+
+        l ->
+            [ head ] ++ splitEvery n l

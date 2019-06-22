@@ -1,4 +1,4 @@
-module Dataset exposing (Chart, Config, Dataset, DimValue, Dimension, Line, Point, PointConverter, Query, Tree(..), blankQuery, categoryConstructor, datasetDecoder, dateConverter, dimValueConstructor, dimensionDecoder, getDataset, getLeafConfig, getTree, helper001, helper002, iterator, leafConfigDecoder, leafConstructor, leafDecoder, partialDimensionDecoder, queryEncoder, queryToString, setHidden, setLeafConfig, setSubTree, ssbTreesUrl, subListDecoder, treeDecoder, treeListDecoder)
+module Dataset exposing (Chart, Config, Dataset, DimValue, Dimension, Line, Point, PointConverter, Query, Tree(..), blankQuery, categoryConstructor, datasetDecoder, dateConverter, dimValueConstructor, dimensionDecoder, firstLongDimensionSize, getDataset, getLeafConfig, getTree, helper001, helper002, leafConfigDecoder, leafConstructor, leafDecoder, makeCharts, partialDimensionDecoder, queryEncoder, queryToString, setHidden, setLeafConfig, setSubTree, splitToCharts, splitToLines, ssbTreesUrl, subListDecoder, treeDecoder, treeListDecoder)
 
 import Http
 import HttpUtil
@@ -53,73 +53,53 @@ type alias PointConverter =
     { xToFloat : String -> Float, xToString : Float -> String }
 
 
-iterator : Dataset -> List (List Line)
-iterator dataset =
-    let
-        dimCombinations =
-            Util.generateCombinations
-                (List.map
-                    (\x ->
-                        List.map .value x.values
+firstLongDimensionSize dataset =
+    Util.indexOf (\dim -> List.length dim.values > 1) dataset.dimensions
+        |> Maybe.andThen (\idx -> Util.getAt idx dataset.dimensions)
+        |> Maybe.map (\dim -> List.length dim.values)
+        |> Maybe.withDefault 1
+
+
+splitToCharts : Int -> List Line -> List (List Line)
+splitToCharts n lines =
+    Util.splitEvery n lines
+
+
+splitToLines : Dataset -> Result String (List Line)
+splitToLines dataset =
+    Result.fromMaybe "No last dim!" (Util.last dataset.dimensions)
+        |> Result.map
+            (\lastDim ->
+                List.map
+                    (\values ->
+                        { points =
+                            List.map2 Point
+                                (List.map (\x -> x.value) lastDim.values)
+                                values
+                        }
                     )
-                    (List.take (List.length dataset.dimensions - 1) dataset.dimensions)
-                )
+                    (Util.splitEvery (List.length lastDim.values) dataset.values)
+            )
 
-        lastDim =
-            Util.last dataset.dimensions
-                |> Maybe.withDefault { code = "error", text = "error", values = [] }
 
-        sizeLastDim =
-            List.length lastDim.values
+makeCharts : Dataset -> Result String (List (List Line))
+makeCharts dataset =
+    let
+        dimsNotOne =
+            Util.indexesOf (\dim -> List.length dim.values /= 1) dataset.dimensions
 
-        size2ndLastDim =
-            Util.nthLast 1 dataset.dimensions
-                |> Maybe.map (\v -> List.length v.values)
-                |> Maybe.withDefault 1
-
-        numTimeSlices =
-            List.length dataset.values // sizeLastDim
-
-        timeSliceSize =
-            List.length dataset.values // numTimeSlices
-
-        timeIndexes =
-            Util.scanl (+) 0 (List.repeat numTimeSlices timeSliceSize)
-
-        timeSliced =
-            List.map (\index -> Util.slice index (index + timeSliceSize) dataset.values) timeIndexes
-
-        lines =
-            List.map
-                (\values ->
-                    List.map2 Point
-                        (List.map (\x -> x.value) lastDim.values)
-                        values
-                )
-                timeSliced
-
-        numChartSlices =
-            List.length lines // size2ndLastDim
-
-        chartSliceSize =
-            List.length lines // numChartSlices
-
-        chartIndexes =
-            Util.scanl (+) 0 (List.repeat numChartSlices chartSliceSize)
-
-        charts =
-            List.map
-                (\index ->
-                    List.map
-                        (\points ->
-                            { points = points }
-                        )
-                        (Util.slice index (index + chartSliceSize) lines)
-                        |> List.filter (\line -> line.points /= [])
-                )
-                chartIndexes
+        firstSize =
+            firstLongDimensionSize dataset
     in
-    List.filter (\chart -> chart /= []) charts
+    case List.length dimsNotOne of
+        2 ->
+            Result.map (\lines -> splitToCharts firstSize lines) (splitToLines dataset)
+
+        1 ->
+            Result.map (\lines -> splitToCharts 1 lines) (splitToLines dataset)
+
+        _ ->
+            Err "Wrong size of dataset"
 
 
 dateConverter : Dataset -> (String -> Float)
@@ -127,18 +107,12 @@ dateConverter dataset =
     case Util.last dataset.dimensions of
         Just dim ->
             \s ->
-                Util.indexOf s (List.map (\v -> v.value) dim.values)
+                Util.indexOf (\x -> x == s) (List.map (\v -> v.value) dim.values)
                     |> Maybe.map toFloat
                     |> Maybe.withDefault 1
 
         Nothing ->
             \s -> 1
-
-
-
---Util.remove [] charts
---List.map2 Tuple.pair
---dimCombinations
 
 
 categoryConstructor id text subTree =
