@@ -132,17 +132,17 @@ dimValueConstructor value valueText =
     { value = value, valueText = valueText, index = -1 }
 
 
-getTree : String -> Task.Task Http.Error (List Tree)
+getTree : String -> Task.Task String (List Tree)
 getTree id =
     HttpUtil.httpGetFromJson (ssbTreesUrl ++ id) (treeListDecoder id)
 
 
-getLeafConfig : String -> Task.Task Http.Error Config
+getLeafConfig : String -> Task.Task String Config
 getLeafConfig id =
     HttpUtil.httpGetFromJson (ssbTreesUrl ++ id) leafConfigDecoder
 
 
-getDataset : Query -> Task.Task Http.Error Dataset
+getDataset : Query -> Task.Task String Dataset
 getDataset query =
     HttpUtil.httpPostFromJson
         (ssbTreesUrl ++ query.id)

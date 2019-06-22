@@ -10,7 +10,7 @@ corsAnywhere =
     "https://cors-anywhere.herokuapp.com/"
 
 
-httpPostFromJson : String -> Encode.Value -> Decode.Decoder a -> Task.Task Http.Error a
+httpPostFromJson : String -> Encode.Value -> Decode.Decoder a -> Task.Task String a
 httpPostFromJson url body decoder =
     Http.task
         { url = corsAnywhere ++ url
@@ -22,7 +22,7 @@ httpPostFromJson url body decoder =
         }
 
 
-httpGetFromJson : String -> Decode.Decoder a -> Task.Task Http.Error a
+httpGetFromJson : String -> Decode.Decoder a -> Task.Task String a
 httpGetFromJson url decoder =
     Http.task
         { url = url
@@ -34,7 +34,7 @@ httpGetFromJson url decoder =
         }
 
 
-responseToResult : Decode.Decoder a -> Http.Response String -> Result Http.Error a
+responseToResult : Decode.Decoder a -> Http.Response String -> Result String a
 responseToResult decoder response =
     case response of
         Http.GoodStatus_ metadata body ->
@@ -42,17 +42,17 @@ responseToResult decoder response =
                 Ok decoded ->
                     Ok decoded
 
-                Err _ ->
-                    Err (Http.BadStatus 2)
+                Err e ->
+                    Err (Debug.toString e)
 
-        Http.BadStatus_ medatada body ->
-            Err (Http.BadStatus 1)
+        Http.BadStatus_ metadata body ->
+            Err ("BadStatus. Metadata = " ++ Debug.toString metadata)
 
         Http.BadUrl_ string ->
-            Err (Http.BadUrl string)
+            Err ("BadUrl. " ++ string)
 
         Http.Timeout_ ->
-            Err Http.Timeout
+            Err (Debug.toString Http.Timeout)
 
         Http.NetworkError_ ->
-            Err Http.NetworkError
+            Err (Debug.toString Http.NetworkError)

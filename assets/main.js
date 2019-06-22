@@ -5090,12 +5090,7 @@ var author$project$Dataset$treeListDecoder = function (id) {
 	return elm$json$Json$Decode$list(
 		author$project$Dataset$treeDecoder(id));
 };
-var elm$http$Http$BadStatus = function (a) {
-	return {$: 'BadStatus', a: a};
-};
-var elm$http$Http$BadUrl = function (a) {
-	return {$: 'BadUrl', a: a};
-};
+var elm$core$Debug$toString = _Debug_toString;
 var elm$http$Http$NetworkError = {$: 'NetworkError'};
 var elm$http$Http$Timeout = {$: 'Timeout'};
 var elm$json$Json$Decode$decodeString = _Json_runOnString;
@@ -5110,22 +5105,24 @@ var author$project$HttpUtil$responseToResult = F2(
 					var decoded = _n1.a;
 					return elm$core$Result$Ok(decoded);
 				} else {
+					var e = _n1.a;
 					return elm$core$Result$Err(
-						elm$http$Http$BadStatus(2));
+						elm$core$Debug$toString(e));
 				}
 			case 'BadStatus_':
-				var medatada = response.a;
+				var metadata = response.a;
 				var body = response.b;
 				return elm$core$Result$Err(
-					elm$http$Http$BadStatus(1));
+					'BadStatus. Metadata = ' + elm$core$Debug$toString(metadata));
 			case 'BadUrl_':
 				var string = response.a;
-				return elm$core$Result$Err(
-					elm$http$Http$BadUrl(string));
+				return elm$core$Result$Err('BadUrl. ' + string);
 			case 'Timeout_':
-				return elm$core$Result$Err(elm$http$Http$Timeout);
+				return elm$core$Result$Err(
+					elm$core$Debug$toString(elm$http$Http$Timeout));
 			default:
-				return elm$core$Result$Err(elm$http$Http$NetworkError);
+				return elm$core$Result$Err(
+					elm$core$Debug$toString(elm$http$Http$NetworkError));
 		}
 	});
 var elm$core$Dict$RBEmpty_elm_builtin = {$: 'RBEmpty_elm_builtin'};
@@ -6263,7 +6260,6 @@ var author$project$Util$replaceIf = F3(
 			list);
 	});
 var elm$core$Basics$neq = _Utils_notEqual;
-var elm$core$Debug$toString = _Debug_toString;
 var elm$core$Platform$Cmd$batch = _Platform_batch;
 var elm$core$Platform$Cmd$none = elm$core$Platform$Cmd$batch(_List_Nil);
 var author$project$Main$handleDatasetMsg = F2(

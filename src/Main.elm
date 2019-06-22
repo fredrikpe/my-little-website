@@ -78,13 +78,13 @@ type DatasetMsg
     | DSetQueryDimension Dataset.Dimension
     | DShowGraph
     | DGetData
-    | DGotData (Result Http.Error Dataset.Dataset)
+    | DGotData (Result String Dataset.Dataset)
 
 
 type Msg
     = Pass
     | ShowStrings (List String)
-    | HttpError Http.Error
+    | HttpError String
     | ShowQuery
     | GetRoot
     | ShowTree
@@ -92,8 +92,8 @@ type Msg
     | DatasetMessage DatasetMsg
     | Show String
     | Hide String
-    | GotRoot (Result Http.Error (List Dataset.Tree))
-    | GotSubTree String (Result Http.Error (List Dataset.Tree))
+    | GotRoot (Result String (List Dataset.Tree))
+    | GotSubTree String (Result String (List Dataset.Tree))
     | Hover (Maybe Dataset.Point)
 
 
