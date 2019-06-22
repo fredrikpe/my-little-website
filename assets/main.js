@@ -11215,6 +11215,28 @@ var author$project$Chart$viewChart = F5(
 				author$project$Chart$colors,
 				author$project$Chart$names));
 	});
+var author$project$Util$getAt = F2(
+	function (i, list) {
+		getAt:
+		while (true) {
+			if (list.b) {
+				var x = list.a;
+				var xs = list.b;
+				if (!i) {
+					return elm$core$Maybe$Just(x);
+				} else {
+					var n = i;
+					var $temp$i = n - 1,
+						$temp$list = xs;
+					i = $temp$i;
+					list = $temp$list;
+					continue getAt;
+				}
+			} else {
+				return elm$core$Maybe$Nothing;
+			}
+		}
+	});
 var author$project$Util$indexOf = F2(
 	function (f, xs) {
 		var helper = F2(
@@ -11252,53 +11274,50 @@ var author$project$Dataset$dateConverter = function (dataset) {
 	var _n0 = author$project$Util$last(dataset.dimensions);
 	if (_n0.$ === 'Just') {
 		var dim = _n0.a;
-		return function (s) {
-			return A2(
-				elm$core$Maybe$withDefault,
-				1,
-				A2(
-					elm$core$Maybe$map,
-					elm$core$Basics$toFloat,
+		return _Utils_Tuple2(
+			function (s) {
+				return A2(
+					elm$core$Maybe$withDefault,
+					1,
 					A2(
-						author$project$Util$indexOf,
-						function (x) {
-							return _Utils_eq(x, s);
+						elm$core$Maybe$map,
+						elm$core$Basics$toFloat,
+						A2(
+							author$project$Util$indexOf,
+							function (x) {
+								return _Utils_eq(x, s);
+							},
+							A2(
+								elm$core$List$map,
+								function (v) {
+									return v.value;
+								},
+								dim.values))));
+			},
+			function (f) {
+				return A2(
+					elm$core$Maybe$withDefault,
+					'error',
+					A2(
+						elm$core$Maybe$map,
+						function ($) {
+							return $.value;
 						},
 						A2(
-							elm$core$List$map,
-							function (v) {
-								return v.value;
-							},
-							dim.values))));
-		};
+							author$project$Util$getAt,
+							elm$core$Basics$round(f),
+							dim.values)));
+			});
 	} else {
-		return function (s) {
-			return 1;
-		};
+		return _Utils_Tuple2(
+			function (s) {
+				return 1;
+			},
+			function (f) {
+				return 'error';
+			});
 	}
 };
-var author$project$Util$getAt = F2(
-	function (i, list) {
-		getAt:
-		while (true) {
-			if (list.b) {
-				var x = list.a;
-				var xs = list.b;
-				if (!i) {
-					return elm$core$Maybe$Just(x);
-				} else {
-					var n = i;
-					var $temp$i = n - 1,
-						$temp$list = xs;
-					i = $temp$i;
-					list = $temp$list;
-					continue getAt;
-				}
-			} else {
-				return elm$core$Maybe$Nothing;
-			}
-		}
-	});
 var author$project$Dataset$firstLongDimensionSize = function (dataset) {
 	return A2(
 		elm$core$Maybe$withDefault,
@@ -11565,11 +11584,10 @@ var author$project$Dataset$makeCharts = function (dataset) {
 };
 var author$project$Chart$viewDataset = F3(
 	function (dataset, msg, hovered) {
-		var toString = function (x) {
-			return 'string';
-		};
-		var toFloat = author$project$Dataset$dateConverter(dataset);
 		var rcharts = author$project$Dataset$makeCharts(dataset);
+		var _n0 = author$project$Dataset$dateConverter(dataset);
+		var toFloat = _n0.a;
+		var toString = _n0.b;
 		if (rcharts.$ === 'Ok') {
 			var charts = rcharts.a;
 			return A5(

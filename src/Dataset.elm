@@ -102,17 +102,22 @@ makeCharts dataset =
             Err "Wrong size of dataset"
 
 
-dateConverter : Dataset -> (String -> Float)
+dateConverter : Dataset -> ( String -> Float, Float -> String )
 dateConverter dataset =
     case Util.last dataset.dimensions of
         Just dim ->
-            \s ->
+            ( \s ->
                 Util.indexOf (\x -> x == s) (List.map (\v -> v.value) dim.values)
                     |> Maybe.map toFloat
                     |> Maybe.withDefault 1
+            , \f ->
+                Util.getAt (round f) dim.values
+                    |> Maybe.map .value
+                    |> Maybe.withDefault "error"
+            )
 
         Nothing ->
-            \s -> 1
+            ( \s -> 1, \f -> "error" )
 
 
 categoryConstructor id text subTree =

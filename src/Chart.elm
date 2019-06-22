@@ -35,11 +35,8 @@ viewDataset dataset msg hovered =
         rcharts =
             Dataset.makeCharts dataset
 
-        toFloat =
+        ( toFloat, toString ) =
             Dataset.dateConverter dataset
-
-        toString =
-            \x -> "string"
     in
     case rcharts of
         Ok charts ->
