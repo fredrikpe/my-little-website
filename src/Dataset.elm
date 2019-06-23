@@ -97,14 +97,17 @@ makeCharts dataset =
     in
     case List.length dimsNotOne of
         0 ->
-            Err "No dimensions with more than one value."
+            Err "One or two variables must have several values selected."
 
         1 ->
             splitToLines dataset singleDummyDim
 
-        _ ->
+        2 ->
             findLineDimension dataset
                 |> Result.andThen (splitToLines dataset)
+
+        _ ->
+            Err "Too many dimensions! Only two variables can have multiple values."
 
 
 dateConverter : Dataset -> ( String -> Float, Float -> String )

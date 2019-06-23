@@ -6883,9 +6883,12 @@ var terezka$line_charts$Internal$Line$line = F4(
 var terezka$line_charts$LineChart$line = terezka$line_charts$Internal$Line$line;
 var terezka$line_charts$Internal$Dots$None = {$: 'None'};
 var terezka$line_charts$LineChart$Dots$none = terezka$line_charts$Internal$Dots$None;
+var terezka$line_charts$Internal$Dots$Plus = {$: 'Plus'};
+var terezka$line_charts$LineChart$Dots$plus = terezka$line_charts$Internal$Dots$Plus;
 var author$project$Chart$linePlot = F2(
 	function (line, color) {
-		return A4(terezka$line_charts$LineChart$line, color, terezka$line_charts$LineChart$Dots$none, line.legend, line.points);
+		var dots = (elm$core$List$length(line.points) > 100) ? terezka$line_charts$LineChart$Dots$none : terezka$line_charts$LineChart$Dots$plus;
+		return A4(terezka$line_charts$LineChart$line, color, dots, line.legend, line.points);
 	});
 var avh4$elm_color$Color$black = A4(avh4$elm_color$Color$RgbaSpace, 0 / 255, 0 / 255, 0 / 255, 1.0);
 var terezka$line_charts$Internal$Axis$Tick$Config = function (a) {
@@ -7495,7 +7498,7 @@ var author$project$Chart$xAxisConfig = F2(
 		return terezka$line_charts$LineChart$Axis$custom(
 			{
 				axisLine: terezka$line_charts$LineChart$Axis$Line$full(avh4$elm_color$Color$black),
-				pixels: 700,
+				pixels: 850,
 				range: A2(terezka$line_charts$LineChart$Axis$Range$padded, 20, 20),
 				ticks: A2(
 					terezka$line_charts$LineChart$Axis$Ticks$floatCustom,
@@ -11197,7 +11200,7 @@ var author$project$Chart$viewChart = F5(
 				x: A2(author$project$Chart$xAxisConfig, toFloat, toString),
 				y: A3(
 					terezka$line_charts$LineChart$Axis$default,
-					450,
+					650,
 					'Weight',
 					function ($) {
 						return $.y;
@@ -11589,14 +11592,16 @@ var author$project$Dataset$makeCharts = function (dataset) {
 	var _n0 = elm$core$List$length(dimsNotOne);
 	switch (_n0) {
 		case 0:
-			return elm$core$Result$Err('No dimensions with more than one value.');
+			return elm$core$Result$Err('One or two variables must have several values selected.');
 		case 1:
 			return A2(author$project$Dataset$splitToLines, dataset, author$project$Dataset$singleDummyDim);
-		default:
+		case 2:
 			return A2(
 				elm$core$Result$andThen,
 				author$project$Dataset$splitToLines(dataset),
 				author$project$Dataset$findLineDimension(dataset));
+		default:
+			return elm$core$Result$Err('Too many dimensions! Only two variables can have multiple values.');
 	}
 };
 var elm$core$Debug$log = _Debug_log;

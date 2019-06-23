@@ -51,7 +51,7 @@ viewDataset dataset msg hovered =
 
 viewChart chart toFloat toString msg hovered =
     LineChart.viewCustom
-        { y = Axis.default 450 "Weight" .y
+        { y = Axis.default 650 "Weight" .y
         , x = xAxisConfig toFloat toString
         , container = Container.styled "line-chart-1" [ ( "font-family", "monospace" ) ]
         , interpolation = Interpolation.default
@@ -78,7 +78,15 @@ viewChart chart toFloat toString msg hovered =
 
 
 linePlot line color =
-    LineChart.line color Dots.none line.legend line.points
+    let
+        dots =
+            if List.length line.points > 100 then
+                Dots.none
+
+            else
+                Dots.plus
+    in
+    LineChart.line color dots line.legend line.points
 
 
 xAxisConfig : (String -> Float) -> (Float -> String) -> Axis.Config Data msg
@@ -86,7 +94,7 @@ xAxisConfig toFloat toString =
     Axis.custom
         { title = Title.default "Year"
         , variable = Just << (\point -> toFloat point.x)
-        , pixels = 700
+        , pixels = 850
         , range = Range.padded 20 20
         , axisLine = AxisLine.full Color.black
         , ticks = Ticks.floatCustom 7 (customTick toString)
