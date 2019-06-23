@@ -11324,21 +11324,33 @@ var elm$core$Result$fromMaybe = F2(
 			return elm$core$Result$Err(err);
 		}
 	});
-var author$project$Dataset$firstLongDimensionSize = function (dataset) {
+var author$project$Dataset$findLineDimension = function (dataset) {
+	var reverse = A2(
+		elm$core$List$drop,
+		1,
+		elm$core$List$reverse(dataset.dimensions));
 	return A2(
 		elm$core$Result$fromMaybe,
 		'Whaaaat',
 		A2(
 			elm$core$Maybe$andThen,
 			function (idx) {
-				return A2(author$project$Util$getAt, idx, dataset.dimensions);
+				return A2(author$project$Util$getAt, idx, reverse);
 			},
 			A2(
 				author$project$Util$indexOf,
 				function (dim) {
 					return elm$core$List$length(dim.values) > 1;
 				},
-				dataset.dimensions)));
+				reverse)));
+};
+var author$project$Dataset$singleDummyDim = {
+	code: 'Dummy',
+	text: 'Dummy',
+	values: _List_fromArray(
+		[
+			{index: 0, value: 'Dummy', valueText: 'Dummy'}
+		])
 };
 var author$project$Dataset$Point = F2(
 	function (x, y) {
@@ -11568,7 +11580,6 @@ var elm$core$Result$andThen = F2(
 		}
 	});
 var author$project$Dataset$makeCharts = function (dataset) {
-	var firstDim = author$project$Dataset$firstLongDimensionSize(dataset);
 	var dimsNotOne = A2(
 		author$project$Util$indexesOf,
 		function (dim) {
@@ -11577,23 +11588,28 @@ var author$project$Dataset$makeCharts = function (dataset) {
 		dataset.dimensions);
 	var _n0 = elm$core$List$length(dimsNotOne);
 	switch (_n0) {
-		case 2:
+		case 0:
+			return elm$core$Result$Err('No dimensions with more than one value.');
+		case 1:
+			return A2(author$project$Dataset$splitToLines, dataset, author$project$Dataset$singleDummyDim);
+		default:
 			return A2(
 				elm$core$Result$andThen,
 				author$project$Dataset$splitToLines(dataset),
-				firstDim);
-		case 1:
-			return elm$core$Result$Err('TODOWrong size of dataset');
-		default:
-			return elm$core$Result$Err('Wrong size of dataset');
+				author$project$Dataset$findLineDimension(dataset));
 	}
 };
+var elm$core$Debug$log = _Debug_log;
 var author$project$Chart$viewDataset = F3(
 	function (dataset, msg, hovered) {
 		var rcharts = author$project$Dataset$makeCharts(dataset);
 		var _n0 = author$project$Dataset$dateConverter(dataset);
 		var toFloat = _n0.a;
 		var toString = _n0.b;
+		var _n1 = A2(
+			elm$core$Debug$log,
+			'kukk',
+			A2(elm$core$Result$map, elm$core$List$length, rcharts));
 		if (rcharts.$ === 'Ok') {
 			var charts = rcharts.a;
 			return A5(

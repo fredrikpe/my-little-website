@@ -35,6 +35,9 @@ viewDataset dataset msg hovered =
         rcharts =
             Dataset.makeCharts dataset
 
+        _ =
+            Debug.log "kukk" (Result.map List.length rcharts)
+
         ( toFloat, toString ) =
             Dataset.dateConverter dataset
     in

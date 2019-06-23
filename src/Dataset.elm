@@ -1,4 +1,4 @@
-module Dataset exposing (Config, Dataset, DimValue, Dimension, Line, Point, PointConverter, Query, Tree(..), blankQuery, categoryConstructor, datasetDecoder, dateConverter, dimValueConstructor, dimensionDecoder, firstLongDimensionSize, getDataset, getLeafConfig, getTree, helper001, helper002, leafConfigDecoder, leafConstructor, leafDecoder, makeCharts, partialDimensionDecoder, queryEncoder, queryToString, setHidden, setLeafConfig, setSubTree, splitToLines, ssbTreesUrl, subListDecoder, treeDecoder, treeListDecoder)
+module Dataset exposing (Config, Dataset, DimValue, Dimension, Line, Point, PointConverter, Query, Tree(..), blankQuery, categoryConstructor, datasetDecoder, dateConverter, dimValueConstructor, dimensionDecoder, getDataset, getLeafConfig, getTree, helper001, helper002, leafConfigDecoder, leafConstructor, leafDecoder, makeCharts, partialDimensionDecoder, queryEncoder, queryToString, setHidden, setLeafConfig, setSubTree, splitToLines, ssbTreesUrl, subListDecoder, treeDecoder, treeListDecoder)
 
 import Http
 import HttpUtil
@@ -49,10 +49,22 @@ type alias PointConverter =
     { xToFloat : String -> Float, xToString : Float -> String }
 
 
-firstLongDimensionSize dataset =
-    Util.indexOf (\dim -> List.length dim.values > 1) dataset.dimensions
-        |> Maybe.andThen (\idx -> Util.getAt idx dataset.dimensions)
+findLineDimension dataset =
+    let
+        reverse =
+            List.reverse dataset.dimensions |> List.drop 1
+    in
+    Util.indexOf (\dim -> List.length dim.values > 1) reverse
+        |> Maybe.andThen (\idx -> Util.getAt idx reverse)
         |> Result.fromMaybe "Whaaaat"
+
+
+singleDummyDim : Dimension
+singleDummyDim =
+    { code = "Dummy"
+    , text = "Dummy"
+    , values = [ { value = "Dummy", valueText = "Dummy", index = 0 } ]
+    }
 
 
 makeLines : Dimension -> Dataset -> Dimension -> List Line
@@ -82,21 +94,17 @@ makeCharts dataset =
     let
         dimsNotOne =
             Util.indexesOf (\dim -> List.length dim.values /= 1) dataset.dimensions
-
-        firstDim =
-            firstLongDimensionSize dataset
     in
     case List.length dimsNotOne of
-        2 ->
-            firstDim
-                |> Result.andThen (splitToLines dataset)
+        0 ->
+            Err "No dimensions with more than one value."
 
         1 ->
-            Err "TODOWrong size of dataset"
+            splitToLines dataset singleDummyDim
 
-        --Result.map (\lines -> splitToCharts 1 lines) (splitToLines dataset)
         _ ->
-            Err "Wrong size of dataset"
+            findLineDimension dataset
+                |> Result.andThen (splitToLines dataset)
 
 
 dateConverter : Dataset -> ( String -> Float, Float -> String )
