@@ -259,31 +259,32 @@ view : Model -> Html.Html Msg
 view model =
     Html.div []
         [ Html.h2 [] [ Html.text "SSB Datasets" ]
-        , viewTree model
-        , configHtml model.datasetConfig
-        , viewChart model Hover
+        , Html.button
+            [ Html.Events.onClick ShowTree, Html.Attributes.style "display" "block" ]
+            [ Html.text "Choose Dataset" ]
+        , if model.showTree then
+            viewTree model
+
+          else
+            viewChart model Hover
         ]
 
 
 viewChart model msg =
-    case model.dataset of
-        Just d ->
-            Chart.viewDataset d msg model.hovered
+    Html.div []
+        [ configHtml model.datasetConfig
+        , case model.dataset of
+            Just d ->
+                Chart.viewDataset d msg model.hovered
 
-        Nothing ->
-            Html.text ""
+            Nothing ->
+                Html.text ""
+        ]
 
 
 viewTree : Model -> Html.Html Msg
 viewTree model =
-    Html.div []
-        [ Html.button [ Html.Events.onClick ShowTree, Html.Attributes.style "display" "block" ] [ Html.text "Choose Dataset" ]
-        , if model.showTree then
-            Html.ul [] (List.map (treeHtml model.datasetConfig) model.trees)
-
-          else
-            Html.text ""
-        ]
+    Html.div [] [ Html.ul [] (List.map (treeHtml model.datasetConfig) model.trees) ]
 
 
 treeHtml : Maybe Dataset.Config -> Dataset.Tree -> Html.Html Msg
@@ -312,18 +313,21 @@ treeHtml oldConfig tree =
 
 configHtml : Maybe Dataset.Config -> Html.Html Msg
 configHtml config =
-    Html.div [ Html.Attributes.class "view__config_div" ]
-        (case config of
-            Just c ->
-                List.map (\v -> dimensionHtml v) c.dimensions
-                    ++ [ Html.button
-                            [ Html.Events.onClick (DatasetMessage DGetData) ]
-                            [ Html.text "Show graph" ]
-                       ]
+    case config of
+        Just c ->
+            Html.div []
+                [ Html.h3 [] [ Html.text c.title ]
+                , Html.div [ Html.Attributes.class "view__config_div" ]
+                    (List.map (\v -> dimensionHtml v) c.dimensions
+                        ++ [ Html.button
+                                [ Html.Events.onClick (DatasetMessage DGetData) ]
+                                [ Html.text "Show graph" ]
+                           ]
+                    )
+                ]
 
-            Nothing ->
-                [ Html.text "" ]
-        )
+        Nothing ->
+            Html.text ""
 
 
 querySelectOptions : Dataset.Dimension -> MultiSelect.Options Msg
