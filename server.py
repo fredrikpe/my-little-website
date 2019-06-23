@@ -19,7 +19,8 @@ class Server(BaseHTTPRequestHandler):
 
 if __name__=='__main__':
     PORT = 9000
-    httpd = HTTPServer(('192.168.0.11', PORT), Server)
+    address = '0.0.0.0'
+    httpd = HTTPServer((address, PORT), Server)
 
-    print("Serving on port", PORT)
+    print("Serving Http on", address, "port", PORT, "...")
     httpd.serve_forever()
