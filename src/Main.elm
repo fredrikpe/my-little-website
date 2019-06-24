@@ -189,12 +189,7 @@ handleDatasetMsg msg model =
         DGotData result ->
             case result of
                 Ok dataset ->
-                    ( { model
-                        | errorMsg = Just (Debug.toString dataset)
-                        , dataset = Just dataset
-                      }
-                    , Cmd.none
-                    )
+                    ( { model , dataset = Just dataset } , Cmd.none)
 
                 Err e ->
                     ( errorModel (Debug.toString e), Cmd.none )
