@@ -6118,6 +6118,14 @@ var author$project$Dataset$partialDimensionDecoder = A2(
 			'label',
 			elm$json$Json$Decode$keyValuePairs(elm$json$Json$Decode$string))));
 var elm$json$Json$Decode$float = _Json_decodeFloat;
+var elm$json$Json$Decode$null = _Json_decodeNull;
+var elm$json$Json$Decode$oneOf = _Json_oneOf;
+var author$project$Dataset$valueDecoder = elm$json$Json$Decode$oneOf(
+	_List_fromArray(
+		[
+			elm$json$Json$Decode$float,
+			elm$json$Json$Decode$null(0)
+		]));
 var author$project$Dataset$datasetDecoder = A3(
 	elm$json$Json$Decode$map2,
 	author$project$Dataset$helper002,
@@ -6128,7 +6136,7 @@ var author$project$Dataset$datasetDecoder = A3(
 	A2(
 		elm$json$Json$Decode$field,
 		'value',
-		elm$json$Json$Decode$list(elm$json$Json$Decode$float)));
+		elm$json$Json$Decode$list(author$project$Dataset$valueDecoder)));
 var author$project$HttpUtil$corsAnywhere = 'https://cors-anywhere.herokuapp.com/';
 var elm$http$Http$jsonBody = function (value) {
 	return A2(
@@ -10410,8 +10418,6 @@ var debois$elm_dom$DOM$target = function (decoder) {
 var debois$elm_dom$DOM$offsetHeight = A2(elm$json$Json$Decode$field, 'offsetHeight', elm$json$Json$Decode$float);
 var debois$elm_dom$DOM$offsetWidth = A2(elm$json$Json$Decode$field, 'offsetWidth', elm$json$Json$Decode$float);
 var debois$elm_dom$DOM$offsetLeft = A2(elm$json$Json$Decode$field, 'offsetLeft', elm$json$Json$Decode$float);
-var elm$json$Json$Decode$null = _Json_decodeNull;
-var elm$json$Json$Decode$oneOf = _Json_oneOf;
 var debois$elm_dom$DOM$offsetParent = F2(
 	function (x, decoder) {
 		return elm$json$Json$Decode$oneOf(
@@ -11376,7 +11382,7 @@ var author$project$Chart$viewDataset = F3(
 		var toString = _n0.b;
 		var _n1 = A2(
 			elm$core$Debug$log,
-			'kukk',
+			'Lenght of charts:',
 			A2(elm$core$Result$map, elm$core$List$length, rcharts));
 		if (rcharts.$ === 'Ok') {
 			var charts = rcharts.a;
@@ -11587,7 +11593,7 @@ var author$project$Main$dimensionHtml = function (dimension) {
 		_List_Nil);
 };
 var elm$html$Html$button = _VirtualDom_node('button');
-var elm$html$Html$h2 = _VirtualDom_node('h2');
+var elm$html$Html$h3 = _VirtualDom_node('h3');
 var elm$html$Html$Attributes$class = elm$html$Html$Attributes$stringProperty('className');
 var elm$html$Html$Events$onClick = function (msg) {
 	return A2(
@@ -11604,7 +11610,7 @@ var author$project$Main$configHtml = function (config) {
 			_List_fromArray(
 				[
 					A2(
-					elm$html$Html$h2,
+					elm$html$Html$h3,
 					_List_Nil,
 					_List_fromArray(
 						[
@@ -11656,7 +11662,7 @@ var author$project$Main$viewChart = F2(
 						var d = _n0.a;
 						return A3(author$project$Chart$viewDataset, d, msg, model.hovered);
 					} else {
-						return elm$html$Html$text('');
+						return elm$html$Html$text('Dataset is Nothing');
 					}
 				}()
 				]));
@@ -11763,7 +11769,19 @@ var author$project$Main$viewTree = function (model) {
 					model.trees))
 			]));
 };
+var author$project$Util$maybeLog = F2(
+	function (s, m) {
+		if (m.$ === 'Just') {
+			var a = m.a;
+			var _n1 = A2(elm$core$Debug$log, s, a);
+			return elm$core$Maybe$Just(a);
+		} else {
+			return elm$core$Maybe$Nothing;
+		}
+	});
+var elm$html$Html$h2 = _VirtualDom_node('h2');
 var author$project$Main$view = function (model) {
+	var _n0 = A2(author$project$Util$maybeLog, 'error', model.errorMsg);
 	return A2(
 		elm$html$Html$div,
 		_List_Nil,

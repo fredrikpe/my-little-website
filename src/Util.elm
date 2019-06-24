@@ -1,4 +1,4 @@
-module Util exposing (all, any, contains, generateCombinations, getAt, indexOf, indexesOf, last, nthLast, remove, replaceIf, scanl, slice, splitEvery)
+module Util exposing (all, any, contains, generateCombinations, getAt, indexOf, indexesOf, last, maybeLog, nthLast, remove, replaceIf, scanl, slice, splitEvery)
 
 import List.Extra as Extra
 
@@ -166,3 +166,17 @@ splitEvery n list =
 
         l ->
             [ head ] ++ splitEvery n l
+
+
+maybeLog : String -> Maybe a -> Maybe a
+maybeLog s m =
+    case m of
+        Just a ->
+            let
+                _ =
+                    Debug.log s a
+            in
+            Just a
+
+        Nothing ->
+            Nothing

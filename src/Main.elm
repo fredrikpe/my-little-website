@@ -257,6 +257,10 @@ handleDatasetMsg msg model =
 
 view : Model -> Html.Html Msg
 view model =
+    let
+        _ =
+            Util.maybeLog "error" model.errorMsg
+    in
     Html.div []
         [ Html.h2 [] [ Html.text "SSB Datasets" ]
         , Html.button
@@ -278,7 +282,7 @@ viewChart model msg =
                 Chart.viewDataset d msg model.hovered
 
             Nothing ->
-                Html.text ""
+                Html.text "Dataset is Nothing"
         ]
 
 

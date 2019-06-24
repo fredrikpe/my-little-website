@@ -304,7 +304,12 @@ datasetDecoder : Decode.Decoder Dataset
 datasetDecoder =
     Decode.map2 helper002
         (Decode.field "dimension" (Decode.keyValuePairs partialDimensionDecoder))
-        (Decode.field "value" (Decode.list Decode.float))
+        (Decode.field "value" (Decode.list valueDecoder))
+
+
+valueDecoder : Decode.Decoder Float
+valueDecoder =
+    Decode.oneOf [ Decode.float, Decode.null 0 ]
 
 
 helper002 : List ( String, List DimValue ) -> List Float -> Dataset
