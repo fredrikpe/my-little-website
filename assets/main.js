@@ -6299,9 +6299,7 @@ var author$project$Main$handleDatasetMsg = F2(
 						_Utils_update(
 							model,
 							{
-								dataset: elm$core$Maybe$Just(dataset),
-								errorMsg: elm$core$Maybe$Just(
-									elm$core$Debug$toString(dataset))
+								dataset: elm$core$Maybe$Just(dataset)
 							}),
 						elm$core$Platform$Cmd$none);
 				} else {
@@ -6576,6 +6574,7 @@ var avh4$elm_color$Color$red = A4(avh4$elm_color$Color$RgbaSpace, 204 / 255, 0 /
 var avh4$elm_color$Color$yellow = A4(avh4$elm_color$Color$RgbaSpace, 237 / 255, 212 / 255, 0 / 255, 1.0);
 var author$project$Chart$colors = _List_fromArray(
 	[avh4$elm_color$Color$red, avh4$elm_color$Color$orange, avh4$elm_color$Color$yellow, avh4$elm_color$Color$green, avh4$elm_color$Color$blue, avh4$elm_color$Color$purple, avh4$elm_color$Color$brown, avh4$elm_color$Color$lightRed, avh4$elm_color$Color$lightOrange, avh4$elm_color$Color$lightYellow, avh4$elm_color$Color$lightGreen, avh4$elm_color$Color$lightBlue, avh4$elm_color$Color$lightPurple, avh4$elm_color$Color$lightBrown]);
+var author$project$Chart$maxDots = 90;
 var terezka$line_charts$Internal$Line$Series = function (a) {
 	return {$: 'Series', a: a};
 };
@@ -6595,7 +6594,9 @@ var terezka$line_charts$Internal$Dots$Plus = {$: 'Plus'};
 var terezka$line_charts$LineChart$Dots$plus = terezka$line_charts$Internal$Dots$Plus;
 var author$project$Chart$linePlot = F2(
 	function (line, color) {
-		var dots = (elm$core$List$length(line.points) > 100) ? terezka$line_charts$LineChart$Dots$none : terezka$line_charts$LineChart$Dots$plus;
+		var dots = (_Utils_cmp(
+			elm$core$List$length(line.points),
+			author$project$Chart$maxDots) > 0) ? terezka$line_charts$LineChart$Dots$none : terezka$line_charts$LineChart$Dots$plus;
 		return A4(terezka$line_charts$LineChart$line, color, dots, line.legend, line.points);
 	});
 var avh4$elm_color$Color$black = A4(avh4$elm_color$Color$RgbaSpace, 0 / 255, 0 / 255, 0 / 255, 1.0);
