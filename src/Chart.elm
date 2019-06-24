@@ -29,6 +29,10 @@ type alias Data =
     Dataset.Point
 
 
+maxDots =
+    90
+
+
 viewDataset : Dataset.Dataset -> (Maybe Data -> msg) -> Maybe Data -> Html.Html msg
 viewDataset dataset msg hovered =
     let
@@ -80,7 +84,7 @@ viewChart chart toFloat toString msg hovered =
 linePlot line color =
     let
         dots =
-            if List.length line.points > 100 then
+            if List.length line.points > maxDots then
                 Dots.none
 
             else
