@@ -1,3 +1,2 @@
 # Plotting the SSB datasets
-
-Currently avaiable at http://84.212.148.220:9000/
+An Elm frontend plotting SSB datasets through their open API (https://data.ssb.no/api/?lang=en)
